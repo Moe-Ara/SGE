@@ -6,50 +6,46 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "src/game_model.h"
 #include "src/game_window.h"
-void errorCallback(int error, const char* description) {
+#include "src/game_input_handler.h"
+
+void errorCallback(int error, const char *description) {
     std::cerr << "Error: " << description << std::endl;
 }
 
 int main() {
     // Set GLFW error callback
     glfwSetErrorCallback(errorCallback);
+    glcpp::game_window window("SGE", 960, 540);
+    glcpp::game_input_handler::setupKeyHandler(&window);
 
-    glcpp::graphics::game_window window("My Window", 960,540);
+    glcpp::game_input_handler inputHandler({GLFW_KEY_A,
+                                            GLFW_KEY_S,
+                                            GLFW_KEY_W,
+                                            GLFW_KEY_D,
+                                            GLFW_KEY_LEFT_CONTROL,
+                                            GLFW_KEY_LEFT_SHIFT,
+                                            GLFW_KEY_Q,
+                                            GLFW_KEY_E},
+                                           {GLFW_MOUSE_BUTTON_RIGHT, GLFW_MOUSE_BUTTON_LEFT});
 
-//    std::shared_ptr<glcpp::game_model> model=glcpp::game_model::createModelFromFile("smooth_vase.obj");
 
-//    while (!glfwWindowShouldClose(window)) {
-//        // Set up OpenGL rendering states
-//        glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // Clear color: black
-//        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear color and depth buffer
-//
-//// Enable depth testing for proper rendering of 3D objects
-//        glEnable(GL_DEPTH_TEST);
-//
-//        model->render();
-////// Bind the vertex array object (VAO)
-////        glBindVertexArray(model->getVao());
-////
-////// Draw the model using indexed rendering
-////        glDrawElements(GL_TRIANGLES, model->getIndexCount(), GL_UNSIGNED_INT, 0);
-////
-////// Unbind the vertex array object (VAO)
-////        glBindVertexArray(0);
-//
-//// Swap buffers and poll events
-//        glfwSwapBuffers(window);
-//        glfwPollEvents();
-//    }
-//
-
-    glClearColor(0.f,0.2f,0.3f,1.0f);
-    while(!window.closed()){
+    glClearColor(0.f, 0.2f, 0.3f, 1.0f);
+    float x = 0.1;
+    while (!window.closed()) {
         window.clear();
-        glBegin(GL_QUADS);
-        glVertex2f(-0.5f,-0.5f);
-        glVertex2f(-0.5f,0.5f);
-        glVertex2f(0.5f,0.5f);
-        glVertex2f(0.5f,-0.5f);
+        if (inputHandler.isKeyPressed(GLFW_KEY_A)) {
+
+            std::cout << "PRESSED" << std::endl;
+
+        }
+        if (inputHandler.isMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT)) {
+            std::cout << "Button Works" << std::endl;
+        }
+//        glBegin(GL_QUADS);
+//        glVertex2f(-0.5f,-0.5f);
+//        glVertex2f(-0.5f,0.5f);
+//        glVertex2f(0.5f,0.5f);
+//        glVertex2f(0.5f,-0.5f);
 
         glEnd();
         window.update();
