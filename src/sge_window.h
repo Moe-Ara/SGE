@@ -2,18 +2,18 @@
 // Created by Mohamad on 20/04/2024.
 //
 
-#ifndef GLCPP_GAME_WINDOW_H
-#define GLCPP_GAME_WINDOW_H
+#ifndef GLCPP_SGE_WINDOW_H
+#define GLCPP_SGE_WINDOW_H
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-namespace glcpp {
-    class game_window {
+namespace SGE::graphics {
+    class sge_window {
     public:
-        game_window(const char *name, int width, int height);
+        sge_window(const char *name, int width, int height);
 
-        ~game_window();
+        ~sge_window();
 
         void update();
 
@@ -36,4 +36,4 @@ namespace glcpp {
 }
 
 
-#endif //GLCPP_GAME_WINDOW_H
+#endif //GLCPP_SGE_WINDOW_H

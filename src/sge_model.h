@@ -2,8 +2,8 @@
 // Created by Mohamad on 17/04/2024.
 //
 
-#ifndef GLCPP_GAME_MODEL_H
-#define GLCPP_GAME_MODEL_H
+#ifndef GLCPP_SGE_MODEL_H
+#define GLCPP_SGE_MODEL_H
 
 #include <glm/vec3.hpp>
 #include <glm/vec2.hpp>
@@ -17,8 +17,8 @@
 #include <unordered_map>
 #include <iostream>
 
-namespace glcpp{
-    class game_model {
+namespace SGE::actors{
+    class sge_model {
     public:
         struct Vertex{
             glm::vec3 position{};
@@ -36,12 +36,12 @@ namespace glcpp{
             std::vector<uint32_t> indices{};
             void loadModel(const std::string &filepath);
         };
-        game_model(const Builder &builder);
-        ~game_model();
-        game_model(const game_model&)=delete;
-        game_model &operator=(const game_model&)=delete;
+        sge_model(const Builder &builder);
+        ~sge_model();
+        sge_model(const sge_model&)=delete;
+        sge_model &operator=(const sge_model&)=delete;
 
-        static std::unique_ptr<game_model> createModelFromFile(const std::string& filepath);
+        static std::unique_ptr<sge_model> createModelFromFile(const std::string& filepath);
         void bind();
         void unbind();
         void render();
@@ -72,7 +72,7 @@ namespace glcpp{
 }
 // Define the custom hash function for Vertex in the std namespace
 namespace std {
-    using Vertex=glcpp::game_model::Vertex;
+    using Vertex=SGE::actors::sge_model::Vertex;
     template <>
     struct hash<Vertex> {
         size_t operator()(const Vertex& v) const {
@@ -103,4 +103,4 @@ namespace std {
 }
 
 
-#endif //GLCPP_GAME_MODEL_H
+#endif //GLCPP_SGE_MODEL_H

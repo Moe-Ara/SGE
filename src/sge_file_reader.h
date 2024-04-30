@@ -2,8 +2,8 @@
 // Created by Mohamad on 28/04/2024.
 //
 
-#ifndef GLCPP_GAME_FILE_READER_H
-#define GLCPP_GAME_FILE_READER_H
+#ifndef GLCPP_SGE_FILE_READER_H
+#define GLCPP_SGE_FILE_READER_H
 
 
 #include <string>
@@ -11,9 +11,9 @@
 #include <iostream>
 #include <sstream>
 
-namespace glcpp::utils{
+namespace SGE::utils{
 
     std::string read_file(const std::string& filename);
 
 }
-#endif //GLCPP_GAME_FILE_READER_H
+#endif //GLCPP_SGE_FILE_READER_H

@@ -2,17 +2,17 @@
 // Created by Mohamad on 28/04/2024.
 //
 
-#ifndef GLCPP_GAME_SHADER_H
-#define GLCPP_GAME_SHADER_H
+#ifndef GLCPP_SGE_SHADER_H
+#define GLCPP_SGE_SHADER_H
 #include <glm/glm.hpp>
 #include <gl/glew.h>
 #include <memory>
-#include "game_file_reader.h"
-namespace glcpp::graphics{
-    class game_shader {
+#include "sge_file_reader.h"
+namespace SGE::graphics{
+    class sge_shader {
     public:
-        game_shader(const char* vert_shader_path,const char* frag_shader_path);
-        ~game_shader();
+        sge_shader(const char* vert_shader_path, const char* frag_shader_path);
+        ~sge_shader();
         void enable() const;
         static void disable();
         void setUniformFloat1(const GLchar* name, float value);
@@ -34,4 +34,4 @@ namespace glcpp::graphics{
 }
 
 
-#endif //GLCPP_GAME_SHADER_H
+#endif //GLCPP_SGE_SHADER_H

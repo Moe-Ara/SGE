@@ -5,11 +5,11 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 
 #include <cassert>
-#include "game_model.h"
-namespace glcpp{
+#include "sge_model.h"
+namespace SGE::actors{
 
 
-void game_model::createIndexBuffer(const std::vector<uint32_t> &indices) {
+void sge_model::createIndexBuffer(const std::vector<uint32_t> &indices) {
     this->indexCount=static_cast<uint32_t>(indices.size());
     hasIndexBuffer = indexCount > 0;
     glGenBuffers(1, &ibo);
@@ -19,7 +19,7 @@ void game_model::createIndexBuffer(const std::vector<uint32_t> &indices) {
 
 }
 
-void game_model::createVertexBuffer(const std::vector<Vertex> &vertices) {
+void sge_model::createVertexBuffer(const std::vector<Vertex> &vertices) {
     vertexCount=static_cast<uint32_t>(vertices.size());
     assert(vertexCount>=3 &&"Vertex Count is less than 3");
     auto bufferSize=sizeof(vertices[0])*vertexCount;
@@ -41,7 +41,7 @@ void game_model::createVertexBuffer(const std::vector<Vertex> &vertices) {
 }
 
 
-void game_model::render() {
+void sge_model::render() {
     glBindVertexArray(vao);
 
     if (hasIndexBuffer) {
@@ -56,21 +56,21 @@ void game_model::render() {
 
 }
 
-game_model::game_model(const game_model::Builder &builder) {
+sge_model::sge_model(const sge_model::Builder &builder) {
 
     createIndexBuffer(builder.indices);
     createVertexBuffer(builder.vertices);
 
 }
 
-std::unique_ptr<game_model> game_model::createModelFromFile(const std::string &filepath) {
+std::unique_ptr<sge_model> sge_model::createModelFromFile(const std::string &filepath) {
     Builder builder{};
     builder.loadModel(filepath);
     std::cout<<"Vertex Count:"<<builder.vertices.size()<<"\n";
-    return std::make_unique<game_model>(builder);
+    return std::make_unique<sge_model>(builder);
 }
 
-    game_model::~game_model() {
+    sge_model::~sge_model() {
         if (vbo != 0) {
             glDeleteBuffers(1, &vbo);
         }
@@ -82,40 +82,40 @@ std::unique_ptr<game_model> game_model::createModelFromFile(const std::string &f
         }
     }
 
-    GLuint game_model::getVbo() const {
+    GLuint sge_model::getVbo() const {
         return vbo;
     }
 
-    GLuint game_model::getIbo() const {
+    GLuint sge_model::getIbo() const {
         return ibo;
     }
 
-    GLuint game_model::getVao() const {
+    GLuint sge_model::getVao() const {
         return vao;
     }
 
-    GLsizei game_model::getVertexCount() const {
+    GLsizei sge_model::getVertexCount() const {
         return vertexCount;
     }
 
-    GLsizei game_model::getIndexCount() const {
+    GLsizei sge_model::getIndexCount() const {
         return indexCount;
     }
 
-    void game_model::unbind() {
+    void sge_model::unbind() {
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
-    void game_model::bind() {
+    void sge_model::bind() {
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 
 
     }
 
-    void game_model::Builder::loadModel(const std::string &filepath) {
+    void sge_model::Builder::loadModel(const std::string &filepath) {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;

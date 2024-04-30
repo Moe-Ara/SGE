@@ -3,32 +3,32 @@
 //
 
 #include <iostream>
-#include "game_window.h"
-#include "game_input_handler.h"
+#include "sge_window.h"
+#include "sge_input_handler.h"
 
-namespace glcpp {
+namespace SGE::graphics {
 
     void windowResize(GLFWwindow *window, int width, int height) {
         glViewport(0, 0, width, height);
     }
 
-    game_window::game_window(const char *name, int width, int height)
+    sge_window::sge_window(const char *name, int width, int height)
             : m_title(name), m_width(width), m_height(height) {
         init();
     }
 
-    game_window::~game_window() {
+    sge_window::~sge_window() {
         glfwTerminate();
     }
 
-    void game_window::update() {
+    void sge_window::update() {
         glfwPollEvents();
 
         glfwSwapBuffers(m_window);
 
     }
 
-    void game_window::init() {
+    void sge_window::init() {
         if (!glfwInit()) {
             std::cerr << "ERROR: glfwInit FAILED" << std::endl;
             return;
@@ -48,15 +48,15 @@ namespace glcpp {
         }
     }
 
-    bool game_window::closed() const {
+    bool sge_window::closed() const {
         return glfwWindowShouldClose(m_window) == 1;
     }
 
-    void game_window::clear() const {
+    void sge_window::clear() const {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
-    GLFWwindow *game_window::getMWindow() const {
+    GLFWwindow *sge_window::getMWindow() const {
         return m_window;
     }
 
