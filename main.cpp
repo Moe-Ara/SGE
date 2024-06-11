@@ -9,6 +9,7 @@
 #include "src/sge_input_handler.h"
 #include "src/sge_shader.h"
 #include "src/sge_camera.h"
+#include "src/sge_camera_manager.h"
 
 void errorCallback(int error, const char *description) {
     std::cerr << "Error: " << description << std::endl;
@@ -60,8 +61,8 @@ int main() {
     ortho = glm::ortho(-14.0f, 16.0f, -10.0f, 12.0f, -12.0f, 12.0f);
     SGE::graphics::sge_shader shader("vertex.vert", "fragment.frag");
     shader.enable();
-//    shader.setUniformMat4("projection",ortho);
-//    shader.setUniformMat4("view",ortho);
+    shader.setUniformMat4("projection",ortho);
+    shader.setUniformMat4("view",ortho);
     camera.setPrespectiveProjection(glm::radians(45.0f), 16.0f / 9.0f, 0.1f, 100.0f);
 
     // Set initial camera position
@@ -85,12 +86,16 @@ int main() {
 
 // Calculate pitch angle (rotation around the x-axis)
     float originalPitch = glm::degrees(asin(forward.y));
+
+    bool isMousePressed = false;
+    double lastMouseX, lastMouseY;
+//    SGE::graphics::sge_camera_manager cameraManager(camera);
     while (!window.closed()) {
 
-//
-//        shader.setUniformMat4("transform",
-//                              glm::rotate(glm::mat4(1.0f), glm::radians(45.0f+x), glm::vec3(0.0f, 1.0f, 0.f)));
-//        x += 0.01f;
+
+        shader.setUniformMat4("transform",
+                              glm::rotate(glm::mat4(1.0f), glm::radians(45.0f+x), glm::vec3(0.0f, 1.0f, 0.f)));
+        x += 0.01f;
 
 
         shader.setUniformMat4("projection", camera.getProjection());
@@ -98,39 +103,61 @@ int main() {
 
         shader.setUniformFloat3("color", glm::vec3(1.0f, 0.f, 1.f));
 
-        // Check for movement input
+    // Handle mouse movement to update yaw and pitch
+        if (inputHandler.isMouseButtonPressed(GLFW_MOUSE_BUTTON_RIGHT)) {
+            if (!isMousePressed) {
+                isMousePressed = true;
+                lastMouseX = SGE::utils::sge_input_handler::getMouseX();
+                lastMouseY = SGE::utils::sge_input_handler::getMouseY();
+            } else {
+                double mouseX = SGE::utils::sge_input_handler::getMouseX();
+                double mouseY = SGE::utils::sge_input_handler::getMouseY();
+                double deltaX = mouseX - lastMouseX;
+                double deltaY = mouseY - lastMouseY;
+
+                float sensitivity = 0.1f;
+                yaw += deltaX * sensitivity;
+                pitch += deltaY * sensitivity;
+                pitch = glm::clamp(pitch, -89.0f, 89.0f);
+
+                lastMouseX = mouseX;
+                lastMouseY = mouseY;
+            }
+        } else {
+            isMousePressed = false;
+        }
+
+        // Handle keyboard input to update camera position
         if (inputHandler.isKeyPressed(GLFW_KEY_W)) {
-            cameraPosition += glm::vec3(camera.getView()[2]) * 0.1f; // Move camera forward along its view direction
+            cameraPosition += camera.getForward() * 0.1f;
         }
         if (inputHandler.isKeyPressed(GLFW_KEY_S)) {
-            cameraPosition -= glm::vec3(camera.getView()[2]) * 0.1f; // Move camera backward along its view direction
+            cameraPosition -= camera.getForward() * 0.1f;
         }
         if (inputHandler.isKeyPressed(GLFW_KEY_A)) {
-            cameraPosition -= glm::vec3(camera.getView()[0]) * 0.1f; // Move camera to the left (negative right vector)
+            cameraPosition -= camera.getRight() * 0.1f;
         }
         if (inputHandler.isKeyPressed(GLFW_KEY_D)) {
-            cameraPosition += glm::vec3(camera.getView()[0]) * 0.1f; // Move camera to the right (positive right vector)
+            cameraPosition += camera.getRight() * 0.1f;
         }
         if (inputHandler.isKeyPressed(GLFW_KEY_E)) {
-            cameraPosition += glm::vec3(camera.getView()[1]) * 0.1f; // Move camera up along its up vector
+            cameraPosition += camera.getAbsoluteUp() * 0.1f;
         }
         if (inputHandler.isKeyPressed(GLFW_KEY_Q)) {
-            cameraPosition -= glm::vec3(camera.getView()[1]) * 0.1f; // Move camera down along its up vector
+            cameraPosition -= camera.getAbsoluteUp() * 0.1f;
         }
-        if (inputHandler.isMouseButtonPressed(1)) {
 
-            yaw = glm::radians(originalYaw) + SGE::utils::sge_input_handler::m_mouseY / 100 * 0.1f;
-            pitch = glm::radians(originalPitch) + SGE::utils::sge_input_handler::m_mouseX / 100 * 0.1f;
-//            pitch =glm::clamp(pitch, -glm::half_pi<float>(), glm::half_pi<float>());
-        }
-        // Update camera position
-        camera.setViewDirection(cameraPosition, glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        camera.setViewYXZ(cameraPosition, glm::vec3(yaw, pitch, roll));
-
+        // Update camera view using yaw and pitch angles
+        glm::vec3 direction(
+                cos(glm::radians(yaw)) * cos(glm::radians(pitch)),
+                sin(glm::radians(pitch)),
+                sin(glm::radians(yaw)) * cos(glm::radians(pitch))
+        );
+        camera.setViewDirection(cameraPosition, direction, glm::vec3(0.0f, 1.0f, 0.0f));
+//        cameraManager.update(inputHandler);
+        // Render the scene
         window.clear();
         model->render();
-
-//        glDrawArrays(GL_TRIANGLES,0,6);
         window.update();
 
 

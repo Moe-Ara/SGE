@@ -1,10 +1,5 @@
-//
-// Created by Mohamad on 20/04/2024.
-//
-
 #include <iostream>
 #include "sge_window.h"
-#include "sge_input_handler.h"
 
 namespace SGE::graphics {
 
@@ -18,14 +13,13 @@ namespace SGE::graphics {
     }
 
     sge_window::~sge_window() {
+        glfwDestroyWindow(m_window); // Ensure proper cleanup
         glfwTerminate();
     }
 
     void sge_window::update() {
         glfwPollEvents();
-
         glfwSwapBuffers(m_window);
-
     }
 
     void sge_window::init() {
@@ -36,6 +30,7 @@ namespace SGE::graphics {
         m_window = glfwCreateWindow(m_width, m_height, m_title, NULL, NULL);
         if (!m_window) {
             std::cerr << "ERROR: Failed To Create Window" << std::endl;
+            glfwTerminate(); // Call glfwTerminate if window creation fails
             return;
         }
         glfwMakeContextCurrent(m_window);
@@ -49,7 +44,7 @@ namespace SGE::graphics {
     }
 
     bool sge_window::closed() const {
-        return glfwWindowShouldClose(m_window) == 1;
+        return glfwWindowShouldClose(m_window);
     }
 
     void sge_window::clear() const {

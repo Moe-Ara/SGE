@@ -1,7 +1,3 @@
-//
-// Created by Mohamad on 17/04/2024.
-//
-
 #ifndef GLCPP_SGE_OBJECT_H
 #define GLCPP_SGE_OBJECT_H
 
@@ -12,16 +8,15 @@
 #include <memory>
 #include "sge_model.h"
 
-
 namespace SGE::actors {
+
     struct Transform {
         glm::vec3 translation{};
         glm::vec3 scale{1.f, 1.f, 1.f};
         glm::quat rotation{};
 
-        glm::mat4 mat4();
-
-        glm::mat3 normalMatrix();
+        glm::mat4 mat4() const;
+        glm::mat3 normalMatrix() const;
     };
 
     class sge_object {
@@ -34,25 +29,21 @@ namespace SGE::actors {
         }
 
         sge_object(const sge_object &) = delete;
-
         sge_object &operator=(const sge_object &) = delete;
-
         sge_object(sge_object &&) = default;
-
         sge_object &operator=(sge_object &&) = default;
 
-        id_t getId() { return id; }
+        id_t getId() const { return id; }
 
         std::shared_ptr<sge_model> model{};
-        glm::vec3 color{};
+        glm::vec3 color{1.f, 1.f, 1.f}; // Default color to white
         Transform transform{};
+
     private:
         explicit sge_object(id_t objectId) : id(objectId) {}
-
         id_t id;
-
     };
-}
 
+}
 
 #endif //GLCPP_SGE_OBJECT_H

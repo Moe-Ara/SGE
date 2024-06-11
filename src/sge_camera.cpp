@@ -88,3 +88,35 @@ const glm::mat4 &SGE::graphics::sge_camera::getProjection() const {
 const glm::mat4 &SGE::graphics::sge_camera::getView() const {
     return viewMatrix;
 }
+
+glm::vec3 SGE::graphics::sge_camera::getRight() const {
+    return glm::vec3(this->getView()[0]);
+}
+
+glm::vec3 SGE::graphics::sge_camera::getRelativeUp() const {
+    return glm::vec3(this->getView()[1]);
+}
+
+glm::vec3 SGE::graphics::sge_camera::getForward() const {
+    return glm::vec3(this->getView()[2]);
+}
+
+glm::vec3 SGE::graphics::sge_camera::getAbsoluteUp() const {
+    return glm::vec3(0.f,-1.f,0.f);
+}
+
+glm::vec3 SGE::graphics::sge_camera::getPositionFromViewMatrix() {
+    // Extract the position from the fourth column of the view matrix
+    return glm::vec3(getView()[3]);
+}
+
+glm::mat3 SGE::graphics::sge_camera::getRotationFromViewMatrix() {
+    // Extract the orientation vectors (forward, up, and right) from the view matrix
+    glm::vec3 forward(getView()[0][2], getView()[1][2], getView()[2][2]);
+    glm::vec3 up(getView()[0][1], getView()[1][1], getView()[2][1]);
+    glm::vec3 right(getView()[0][0], getView()[1][0], getView()[2][0]);
+
+    // Construct a rotation matrix from the orientation vectors
+    return glm::mat3(right, up, -forward); // Note: Negate the forward vector to convert from left-handed to right-handed coordinate system
+}
+

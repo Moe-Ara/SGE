@@ -1,85 +1,45 @@
-//
-// Created by Mohamad on 20/04/2024.
-//
-
-#include <iostream>
 #include "sge_input_handler.h"
+#include <algorithm>
 
 namespace SGE::utils {
 
-
     std::vector<sge_input_handler *> sge_input_handler::m_instances;
-    double sge_input_handler::m_mouseX, sge_input_handler::m_mouseY;
+    double sge_input_handler::m_mouseX = 0.0;
+    double sge_input_handler::m_mouseY = 0.0;
+
+    sge_input_handler::sge_input_handler(const std::vector<int>& keysToMonitor, const std::vector<int>& buttonsToMonitor)
+            : m_enabled(true) {
+        for (int key : keysToMonitor) {
+            m_keys[key] = false;
+        }
+        for (int button : buttonsToMonitor) {
+            m_buttons[button] = false;
+        }
+        m_instances.push_back(this);
+    }
 
     sge_input_handler::~sge_input_handler() {
         m_instances.erase(std::remove(m_instances.begin(), m_instances.end(), this), m_instances.end());
     }
 
-
-    bool sge_input_handler::isKeyPressed(unsigned int keycode) {
-        bool result = false;
+    bool sge_input_handler::isKeyPressed(unsigned int keycode) const {
         if (m_enabled) {
             auto it = m_keys.find(keycode);
             if (it != m_keys.end()) {
-                result = m_keys[keycode];
+                return it->second;
             }
         }
-        return result;
+        return false;
     }
 
-    bool sge_input_handler::isMouseButtonPressed(unsigned int button) {
-        bool result = false;
+    bool sge_input_handler::isMouseButtonPressed(unsigned int button) const {
         if (m_enabled) {
             auto it = m_buttons.find(button);
             if (it != m_buttons.end()) {
-                result = m_buttons[button];
+                return it->second;
             }
         }
-        return result;
-    }
-
-
-//bool *SGE::sge_input_handler::getMKeys() {
-//    return m_keys;
-//}
-//
-//bool *SGE::sge_input_handler::getMMouseButtons() {
-//    return m_mouseButtons;
-//}
-//
-//double SGE::sge_input_handler::getMMouseX() {
-//    return m_mouseX;
-//}
-//
-//double SGE::sge_input_handler::getMMouseY() {
-//    return m_mouseY;
-//}
-    void sge_input_handler::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
-        for (sge_input_handler *keyInput: m_instances) {
-            keyInput->setIsKeyPressed(key, action != GLFW_RELEASE);
-        }
-
-    }
-
-    void sge_input_handler::cursor_position_callback(GLFWwindow *window, double xpos, double ypos) {
-        glfwGetCursorPos(window, &m_mouseX, &m_mouseY);
-    }
-
-    void sge_input_handler::mouse_button_callback(GLFWwindow *window, int button, int action, int mods) {
-        for (sge_input_handler *keyInput: m_instances) {
-            keyInput->setIsButtonPressed(button, action != GLFW_RELEASE);
-        }
-    }
-
-    sge_input_handler::sge_input_handler(std::vector<int> keysToMonitor, std::vector<int> buttonsToMonitor)
-            : m_enabled(true) {
-        for (int key: keysToMonitor) {
-            m_keys[key] = false;
-        }
-        for (int button: buttonsToMonitor) {
-            m_buttons[button] = false;
-        }
-        sge_input_handler::m_instances.push_back(this);
+        return false;
     }
 
     void sge_input_handler::setIsKeyPressed(int keycode, bool isPressed) {
@@ -96,13 +56,36 @@ namespace SGE::utils {
         }
     }
 
-
-    void sge_input_handler::setupKeyHandler(SGE::graphics::sge_window *window) {
-        glfwSetKeyCallback(window->getMWindow(), sge_input_handler::key_callback);
-        glfwSetCursorPosCallback(window->getMWindow(), cursor_position_callback);
-        glfwSetMouseButtonCallback(window->getMWindow(), mouse_button_callback);
+    void sge_input_handler::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+        for (sge_input_handler *handler : m_instances) {
+            handler->setIsKeyPressed(key, action != GLFW_RELEASE);
+        }
     }
 
-}
+    void sge_input_handler::cursor_position_callback(GLFWwindow *window, double xpos, double ypos) {
+        m_mouseX = xpos;
+        m_mouseY = ypos;
+    }
 
+    void sge_input_handler::mouse_button_callback(GLFWwindow *window, int button, int action, int mods) {
+        for (sge_input_handler *handler : m_instances) {
+            handler->setIsButtonPressed(button, action != GLFW_RELEASE);
+        }
+    }
 
+    void sge_input_handler::setupKeyHandler(SGE::graphics::sge_window *window) {
+        GLFWwindow *glfwWindow = window->getMWindow();
+        glfwSetKeyCallback(glfwWindow, sge_input_handler::key_callback);
+        glfwSetCursorPosCallback(glfwWindow, sge_input_handler::cursor_position_callback);
+        glfwSetMouseButtonCallback(glfwWindow, sge_input_handler::mouse_button_callback);
+    }
+
+    double sge_input_handler::getMouseX() {
+        return m_mouseX;
+    }
+
+    double sge_input_handler::getMouseY() {
+        return m_mouseY;
+    }
+
+} // namespace SGE::utils

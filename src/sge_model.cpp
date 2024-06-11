@@ -1,84 +1,76 @@
-//
-// Created by Mohamad on 17/04/2024.
-//
-
 #define TINYOBJLOADER_IMPLEMENTATION
 
 #include <cassert>
 #include "sge_model.h"
-namespace SGE::actors{
 
+namespace SGE::actors {
 
-void sge_model::createIndexBuffer(const std::vector<uint32_t> &indices) {
-    this->indexCount=static_cast<uint32_t>(indices.size());
-    hasIndexBuffer = indexCount > 0;
-    glGenBuffers(1, &ibo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexCount*sizeof(uint32_t), indices.data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-}
-
-void sge_model::createVertexBuffer(const std::vector<Vertex> &vertices) {
-    vertexCount=static_cast<uint32_t>(vertices.size());
-    assert(vertexCount>=3 &&"Vertex Count is less than 3");
-    auto bufferSize=sizeof(vertices[0])*vertexCount;
-    uint32_t vertexSize=sizeof(vertices[0]);
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, bufferSize, vertices.data(),GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
-    glEnableVertexAttribArray(1); // Color attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
-    glEnableVertexAttribArray(2); // Normal attribute
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
-    glEnableVertexAttribArray(3); // UV attribute
-    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv));
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-}
-
-
-void sge_model::render() {
-    glBindVertexArray(vao);
-
-    if (hasIndexBuffer) {
+    void sge_model::createIndexBuffer(const std::vector<uint32_t> &indices) {
+        this->indexCount = static_cast<GLsizei>(indices.size());
+        hasIndexBuffer = indexCount > 0;
+        glGenBuffers(1, &ibo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-        glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
-    } else {
-        glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexCount * sizeof(uint32_t), indices.data(), GL_STATIC_DRAW);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
-    glBindVertexArray(0);
-    unbind();
 
+    void sge_model::createVertexBuffer(const std::vector<Vertex> &vertices) {
+        vertexCount = static_cast<GLsizei>(vertices.size());
+        assert(vertexCount >= 3 && "Vertex Count is less than 3");
 
-}
+        auto bufferSize = sizeof(vertices[0]) * vertexCount;
+        glGenBuffers(1, &vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, bufferSize, vertices.data(), GL_STATIC_DRAW);
 
-sge_model::sge_model(const sge_model::Builder &builder) {
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
 
-    createIndexBuffer(builder.indices);
-    createVertexBuffer(builder.vertices);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv));
 
-}
+        glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
 
-std::unique_ptr<sge_model> sge_model::createModelFromFile(const std::string &filepath) {
-    Builder builder{};
-    builder.loadModel(filepath);
-    std::cout<<"Vertex Count:"<<builder.vertices.size()<<"\n";
-    return std::make_unique<sge_model>(builder);
-}
+    void sge_model::render() const {
+        glBindVertexArray(vao);
+        if (hasIndexBuffer) {
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+            glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, nullptr);
+        } else {
+            glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+        }
+        glBindVertexArray(0);
+    }
+
+    sge_model::sge_model(const sge_model::Builder &builder) {
+        createVertexBuffer(builder.vertices);
+        createIndexBuffer(builder.indices);
+    }
+
+    std::unique_ptr<sge_model> sge_model::createModelFromFile(const std::string &filepath) {
+        Builder builder{};
+        builder.loadModel(filepath);
+        std::cout << "Vertex Count: " << builder.vertices.size() << "\n";
+        return std::make_unique<sge_model>(builder);
+    }
 
     sge_model::~sge_model() {
+        if (vao != 0) {
+            glDeleteVertexArrays(1, &vao);
+        }
         if (vbo != 0) {
             glDeleteBuffers(1, &vbo);
         }
         if (ibo != 0) {
             glDeleteBuffers(1, &ibo);
-        }
-        if (vao != 0) {
-            glDeleteVertexArrays(1, &vao);
         }
     }
 
@@ -102,72 +94,71 @@ std::unique_ptr<sge_model> sge_model::createModelFromFile(const std::string &fil
         return indexCount;
     }
 
-    void sge_model::unbind() {
-
+    void sge_model::unbind() const {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
-    void sge_model::bind() {
+    void sge_model::bind() const {
+        glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-
-
-    }
-
-    void sge_model::Builder::loadModel(const std::string &filepath) {
-    tinyobj::attrib_t attrib;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
-    std::string warn, err;
-
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filepath.c_str())) {
-        throw std::runtime_error(warn + err);
-    }
-    vertices.clear();
-    indices.clear();
-    std::unordered_map<Vertex, uint32_t> uniqueVertices{};
-    for (const auto &shape: shapes) {
-        for (const auto &index: shape.mesh.indices) {
-            Vertex vertex{};
-            if (index.vertex_index >= 0) {
-                vertex.position = {
-                        attrib.vertices[3 * index.vertex_index + 0],
-                        attrib.vertices[3 * index.vertex_index + 1],
-                        attrib.vertices[3 * index.vertex_index + 2],
-
-                };
-                vertex.color = {
-                        attrib.colors[3 * index.vertex_index + 0],
-                        attrib.colors[3 * index.vertex_index + 1],
-                        attrib.colors[3 * index.vertex_index + 2],
-
-                };
-            }
-            if (index.normal_index >= 0) {
-                vertex.normal = {
-                        attrib.normals[3 * index.normal_index + 0],
-                        attrib.normals[3 * index.normal_index + 1],
-                        attrib.normals[3 * index.normal_index + 2],
-
-                };
-
-            }
-            if (index.texcoord_index >= 0) {
-                vertex.uv = {
-                        attrib.texcoords[3 * index.texcoord_index + 0],
-                        attrib.texcoords[3 * index.texcoord_index + 1],
-
-                };
-            }
-            if (uniqueVertices.count(vertex) == 0) {
-                uniqueVertices[vertex] = static_cast<uint32_t> (vertices.size());
-                vertices.push_back(vertex);
-
-            }
-            indices.push_back(uniqueVertices[vertex]);
+        if (hasIndexBuffer) {
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
         }
     }
 
+    void sge_model::Builder::loadModel(const std::string &filepath) {
+        tinyobj::attrib_t attrib;
+        std::vector<tinyobj::shape_t> shapes;
+        std::vector<tinyobj::material_t> materials;
+        std::string warn, err;
 
-}}
+        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filepath.c_str())) {
+            throw std::runtime_error(warn + err);
+        }
+
+        vertices.clear();
+        indices.clear();
+        std::unordered_map<Vertex, uint32_t> uniqueVertices{};
+
+        for (const auto &shape : shapes) {
+            for (const auto &index : shape.mesh.indices) {
+                Vertex vertex{};
+
+                if (index.vertex_index >= 0) {
+                    vertex.position = {
+                            attrib.vertices[3 * index.vertex_index + 0],
+                            attrib.vertices[3 * index.vertex_index + 1],
+                            attrib.vertices[3 * index.vertex_index + 2]
+                    };
+                    if (!attrib.colors.empty()) {
+                        vertex.color = {
+                                attrib.colors[3 * index.vertex_index + 0],
+                                attrib.colors[3 * index.vertex_index + 1],
+                                attrib.colors[3 * index.vertex_index + 2]
+                        };
+                    }
+                }
+                if (index.normal_index >= 0) {
+                    vertex.normal = {
+                            attrib.normals[3 * index.normal_index + 0],
+                            attrib.normals[3 * index.normal_index + 1],
+                            attrib.normals[3 * index.normal_index + 2]
+                    };
+                }
+                if (index.texcoord_index >= 0) {
+                    vertex.uv = {
+                            attrib.texcoords[2 * index.texcoord_index + 0],
+                            attrib.texcoords[2 * index.texcoord_index + 1]
+                    };
+                }
+
+                if (uniqueVertices.count(vertex) == 0) {
+                    uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
+                    vertices.push_back(vertex);
+                }
+                indices.push_back(uniqueVertices[vertex]);
+            }
+        }
+    }
+}
