@@ -1,11 +1,11 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 
 #include <cassert>
-#include "sge_model.h"
+#include "Model.h"
 
 namespace SGE::actors {
 
-    void sge_model::createIndexBuffer(const std::vector<uint32_t> &indices) {
+    void Model::createIndexBuffer(const std::vector<uint32_t> &indices) {
         this->indexCount = static_cast<GLsizei>(indices.size());
         hasIndexBuffer = indexCount > 0;
         glGenBuffers(1, &ibo);
@@ -14,7 +14,7 @@ namespace SGE::actors {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
-    void sge_model::createVertexBuffer(const std::vector<Vertex> &vertices) {
+    void Model::createVertexBuffer(const std::vector<Vertex> &vertices) {
         vertexCount = static_cast<GLsizei>(vertices.size());
         assert(vertexCount >= 3 && "Vertex Count is less than 3");
 
@@ -39,7 +39,7 @@ namespace SGE::actors {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
-    void sge_model::render() const {
+    void Model::render() const {
         glBindVertexArray(vao);
         if (hasIndexBuffer) {
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
@@ -50,19 +50,19 @@ namespace SGE::actors {
         glBindVertexArray(0);
     }
 
-    sge_model::sge_model(const sge_model::Builder &builder) {
+    Model::Model(const Model::Builder &builder) {
         createVertexBuffer(builder.vertices);
         createIndexBuffer(builder.indices);
     }
 
-    std::unique_ptr<sge_model> sge_model::createModelFromFile(const std::string &filepath) {
+    std::unique_ptr<Model> Model::createModelFromFile(const std::string &filepath) {
         Builder builder{};
         builder.loadModel(filepath);
         std::cout << "Vertex Count: " << builder.vertices.size() << "\n";
-        return std::make_unique<sge_model>(builder);
+        return std::make_unique<Model>(builder);
     }
 
-    sge_model::~sge_model() {
+    Model::~Model() {
         if (vao != 0) {
             glDeleteVertexArrays(1, &vao);
         }
@@ -74,32 +74,32 @@ namespace SGE::actors {
         }
     }
 
-    GLuint sge_model::getVbo() const {
+    GLuint Model::getVbo() const {
         return vbo;
     }
 
-    GLuint sge_model::getIbo() const {
+    GLuint Model::getIbo() const {
         return ibo;
     }
 
-    GLuint sge_model::getVao() const {
+    GLuint Model::getVao() const {
         return vao;
     }
 
-    GLsizei sge_model::getVertexCount() const {
+    GLsizei Model::getVertexCount() const {
         return vertexCount;
     }
 
-    GLsizei sge_model::getIndexCount() const {
+    GLsizei Model::getIndexCount() const {
         return indexCount;
     }
 
-    void sge_model::unbind() const {
+    void Model::unbind() const {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
-    void sge_model::bind() const {
+    void Model::bind() const {
         glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         if (hasIndexBuffer) {
@@ -107,7 +107,7 @@ namespace SGE::actors {
         }
     }
 
-    void sge_model::Builder::loadModel(const std::string &filepath) {
+    void Model::Builder::loadModel(const std::string &filepath) {
         tinyobj::attrib_t attrib;
         std::vector<tinyobj::shape_t> shapes;
         std::vector<tinyobj::material_t> materials;

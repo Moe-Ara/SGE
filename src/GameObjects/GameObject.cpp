@@ -1,4 +1,4 @@
-#include "sge_object.h"
+#include "GameObject.h"
 
 namespace SGE::actors {
 

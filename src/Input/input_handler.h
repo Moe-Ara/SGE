@@ -1,18 +1,18 @@
-#ifndef GLCPP_SGE_INPUT_HANDLER_H
-#define GLCPP_SGE_INPUT_HANDLER_H
+#ifndef GLCPP_INPUT_HANDLER_H
+#define GLCPP_INPUT_HANDLER_H
 
-#include <GL/glew.h>
+#include <gl/glew.h>
 #include <GLFW/glfw3.h>
 #include <vector>
 #include <map>
-#include "sge_window.h"
+#include "../Graphics/Window.h"
 
-namespace SGE::utils {
+namespace SGE::Input {
 
-    class sge_input_handler {
+    class input_handler {
     public:
-        sge_input_handler(const std::vector<int>& keysToMonitor, const std::vector<int>& buttonsToMonitor);
-        ~sge_input_handler();
+        input_handler(const std::vector<int>& keysToMonitor, const std::vector<int>& buttonsToMonitor);
+        ~input_handler();
 
         bool isKeyPressed(unsigned int keycode) const;
         bool isMouseButtonPressed(unsigned int button) const;
@@ -20,7 +20,7 @@ namespace SGE::utils {
         bool getIsEnabled() const { return m_enabled; }
         void setIsEnabled(bool value) { m_enabled = value; }
 
-        static void setupKeyHandler(SGE::graphics::sge_window *window);
+        static void setupKeyHandler(SGE::graphics::Window *window);
         static double getMouseX();  // Getter function for m_mouseX
         static double getMouseY();   // Getter function for m_mouseY
 
@@ -37,10 +37,10 @@ namespace SGE::utils {
         static void cursor_position_callback(GLFWwindow *window, double xpos, double ypos);
         static void mouse_button_callback(GLFWwindow *window, int button, int action, int mods);
 
-        static std::vector<sge_input_handler *> m_instances;
+        static std::vector<input_handler *> m_instances;
         static double m_mouseX, m_mouseY;
     };
 
 } // namespace SGE::utils
 
-#endif // GLCPP_SGE_INPUT_HANDLER_H
+#endif // GLCPP_INPUT_HANDLER_H

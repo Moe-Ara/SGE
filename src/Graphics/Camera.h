@@ -2,12 +2,12 @@
 // Created by Mohamad on 29/04/2024.
 //
 
-#ifndef GLCPP_SGE_CAMERA_H
-#define GLCPP_SGE_CAMERA_H
+#ifndef GLCPP_CAMERA_H
+#define GLCPP_CAMERA_H
 #include <memory>
 #include <glm/glm.hpp>
 namespace SGE::graphics {
-    class sge_camera {
+    class Camera {
     public:
 
         void setOrthographicProjection(float left, float right, float top, float bottom, float near, float far);
@@ -16,6 +16,7 @@ namespace SGE::graphics {
         void setViewDirection(glm::vec3 position, glm::vec3 direction, glm::vec3 up= glm::vec3(0.f, -1.f, 0.f));
         void setViewTarget(glm::vec3 position, glm::vec3 target, glm::vec3 up= glm::vec3(0.f, -1.f, 0.f));
         void setViewYXZ(glm::vec3 position, glm::vec3 rotation);
+        void moveCamera(glm::vec3 position);
 
 
         [[nodiscard]] const glm::mat4& getProjection() const;
@@ -24,6 +25,9 @@ namespace SGE::graphics {
     private:
         glm::mat4 projectionMatrix{1.f};
         glm::mat4 viewMatrix{1.f};
+        glm::vec3 position{0.f, 0.f, 0.f};
+        glm::vec3 direction{0.f, 0.f, -1.f};
+        glm::vec3 up{0.f, 1.f, 0.f};
     public:
         [[nodiscard]] glm::vec3 getRight() const;
 
@@ -37,4 +41,4 @@ namespace SGE::graphics {
     };
 }
 
-#endif //GLCPP_SGE_CAMERA_H
+#endif //GLCPP_CAMERA_H

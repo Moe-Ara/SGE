@@ -1,19 +1,19 @@
-#ifndef GLCPP_SGE_MODEL_H
-#define GLCPP_SGE_MODEL_H
+#ifndef GLCPP_MODEL_H
+#define GLCPP_MODEL_H
 
 #include <glm/vec3.hpp>
 #include <glm/vec2.hpp>
 #include <vector>
 #include <string>
-#include <GL/glew.h>
-#include "../external/tiny_object_loader.h"
+#include <gl/glew.h>
+#include "../../external/tiny_object_loader.h"
 #include <stdexcept>
 #include <memory>
 #include <unordered_map>
 #include <iostream>
 
 namespace SGE::actors {
-    class sge_model {
+    class Model {
     public:
         struct Vertex {
             glm::vec3 position{};
@@ -34,12 +34,12 @@ namespace SGE::actors {
             void loadModel(const std::string &filepath);
         };
 
-        sge_model(const Builder &builder);
-        ~sge_model();
-        sge_model(const sge_model&) = delete;
-        sge_model &operator=(const sge_model&) = delete;
+        Model(const Builder &builder);
+        ~Model();
+        Model(const Model&) = delete;
+        Model &operator=(const Model&) = delete;
 
-        static std::unique_ptr<sge_model> createModelFromFile(const std::string& filepath);
+        static std::unique_ptr<Model> createModelFromFile(const std::string& filepath);
 
         void bind() const;
         void unbind() const;
@@ -66,7 +66,7 @@ namespace SGE::actors {
 
 // Define the custom hash function for Vertex in the std namespace
 namespace std {
-    using Vertex = SGE::actors::sge_model::Vertex;
+    using Vertex = SGE::actors::Model::Vertex;
     template <>
     struct hash<Vertex> {
         size_t operator()(const Vertex& v) const {
@@ -94,4 +94,4 @@ namespace std {
     };
 }
 
-#endif //GLCPP_SGE_MODEL_H
+#endif //GLCPP_MODEL_H
