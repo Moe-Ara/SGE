@@ -50,10 +50,10 @@ Here's why:
 * Develop a foundational understanding of game engine architecture
 
 ### Main Demo
-![Main Demo Screenshot][main-demo-screenshot]
+[![Main Demo Screenshot][main-demo-screenshot]](#)
 <br />
 ### Lighting Demo
-![Lighting Demo Screenshot][lighting-demo-screenshot](https://github.com/Moe-Ara/SGE/blob/master/resources/images/Lighting.png)
+[![Lighting Demo Screenshot][lighting-demo-screenshot]] (https://github.com/Moe-Ara/SGE/blob/master/resources/images/Lighting.png)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
