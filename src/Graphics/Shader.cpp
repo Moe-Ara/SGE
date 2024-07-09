@@ -88,7 +88,7 @@ namespace SGE::graphics {
             glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
             std::vector<char> error(length);
             glGetShaderInfoLog(shader, length, &length, error.data());
-            std::cerr << error.data() << std::endl;
+            std::cerr << "Shader compilation error: " << error.data() << std::endl;
             return false;
         }
 
@@ -143,7 +143,7 @@ namespace SGE::graphics {
         }
     }
     void Shader::setUniformMat3(const GLchar *name, const glm::mat3 &matrix) {
-        enable();
+        enable();  // Ensure shader is active
         GLint location = getUniformLocation(name);
         if (location == -1) {
             std::cerr << "Warning: uniform '" << name << "' doesn't exist in the shader!" << std::endl;
@@ -159,25 +159,5 @@ namespace SGE::graphics {
         }
         return location;
     }
-
-    bool Shader::check_compilation_errors(GLuint shader, const char *code) {
-        glShaderSource(shader, 1, &code, nullptr);
-        glCompileShader(shader);
-
-        // Check compilation errors
-        GLint result;
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &result);
-        if (result == GL_FALSE) {
-            GLint length;
-            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
-            std::vector<char> error(length);
-            glGetShaderInfoLog(shader, length, &length, error.data());
-            std::cerr << error.data() << std::endl;
-            return false;
-        }
-
-        return true;
-    }
-
 
 }

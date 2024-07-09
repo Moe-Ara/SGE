@@ -35,13 +35,14 @@ void renderObjects(SGE::graphics::Shader& shader, SGE::actors::Actor& actor, SGE
     material.specular = glm::vec3(0.5f, 0.5f, 0.5f);
     material.shininess = 32.0f;
 
+
     shader.enable();
     shader.setUniformMat4("transform", actor.getTransform().mat4());
     shader.setUniformMat4("projection", camera.getProjection());
     shader.setUniformMat4("view", camera.getView());
+    shader.setUniformFloat3("uniformColor", actor.getColor());
     shader.setUniformMat3("normalMatrix", actor.getTransform().normalMatrix());
 
-    shader.setUniformFloat3("uniformColor", actor.getColor());
     shader.setUniformFloat3("material.ambient", material.ambient);
     shader.setUniformFloat3("material.diffuse", material.diffuse);
     shader.setUniformFloat3("material.specular", material.specular);
@@ -62,16 +63,23 @@ int main() {
     // Set GLFW error callback
     glfwSetErrorCallback(errorCallback);
 
+    // Initialize GLFW
+    if (!glfwInit()) {
+        std::cerr << "Failed to initialize GLFW" << std::endl;
+        return -1;
+    }
+    // Set GLFW window hints (optional)
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     // Initialize window
     SGE::graphics::Window window("SGE", 960, 540);
     SGE::Input::input_handler::setupKeyHandler(&window);
 
-    SGE::Input::input_handler inputHandler({GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_W, GLFW_KEY_D, GLFW_KEY_LEFT_CONTROL, GLFW_KEY_LEFT_SHIFT, GLFW_KEY_Q, GLFW_KEY_E},
+    SGE::Input::input_handler inputHandler({GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_W, GLFW_KEY_D, GLFW_KEY_LEFT_CONTROL, GLFW_KEY_LEFT_SHIFT, GLFW_KEY_Q, GLFW_KEY_E,GLFW_KEY_ESCAPE},
                                            {GLFW_MOUSE_BUTTON_RIGHT, GLFW_MOUSE_BUTTON_LEFT});
 
     glClearColor(0.f, 0.2f, 0.3f, 1.0f);
-
-    auto model = SGE::actors::Model::createModelFromFile("cube.obj");
 
     SGE::actors::Player player{};
     SGE::graphics::Shader shader("vertex.vert", "fragment.frag");
@@ -87,6 +95,11 @@ int main() {
     glDisable(GL_BLEND);
 
     while (!window.closed()) {
+        if (inputHandler.isKeyPressed(GLFW_KEY_ESCAPE)){
+            glfwTerminate();
+            break;
+
+        }
         auto currentFrameTime = std::chrono::high_resolution_clock::now();
         std::chrono::duration<float> deltaTimeDuration = currentFrameTime - lastFrameTime;
         float deltaTime = deltaTimeDuration.count();
@@ -96,7 +109,7 @@ int main() {
 
         // Clear the screen
         window.clear();
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // Ensure we're filling polygons, not just drawing lines
+//        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // Ensure we're filling polygons, not just drawing lines
 
         // Render objects
         renderObjects(shader, player, player.getCamera());
@@ -106,6 +119,7 @@ int main() {
         window.update();
         lastFrameTime = currentFrameTime;
     }
-
+    // Cleanup and close
+//    glfwTerminate();
     return 0;
 }
