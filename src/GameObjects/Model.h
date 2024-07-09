@@ -1,83 +1,76 @@
-//
-// Created by Mohamad on 17/04/2024.
-//
-
-#ifndef GLCPP_SGE_MODEL_H
-#define GLCPP_SGE_MODEL_H
+#ifndef GLCPP_MODEL_H
+#define GLCPP_MODEL_H
 
 #include <glm/vec3.hpp>
 #include <glm/vec2.hpp>
 #include <vector>
 #include <string>
 #include <gl/glew.h>
-#include "../external/tiny_object_loader.h"
+#include "../../external/tiny_object_loader.h"
 #include <stdexcept>
 #include <memory>
-#include <stdexcept>
 #include <unordered_map>
 #include <iostream>
 
-namespace SGE::actors{
-    class sge_model {
+namespace SGE::actors {
+    class Model {
     public:
-        struct Vertex{
+        struct Vertex {
             glm::vec3 position{};
             glm::vec3 color{};
             glm::vec3 normal{};
             glm::vec2 uv{};
 
-            bool operator==(const Vertex& other) const{
-                return position==other.position && color==other.color&& normal==other.normal&& uv==other.uv;
+            bool operator==(const Vertex& other) const {
+                return position == other.position && color == other.color &&
+                       normal == other.normal && uv == other.uv;
             }
-
         };
-        struct Builder{
+
+        struct Builder {
             std::vector<Vertex> vertices{};
             std::vector<uint32_t> indices{};
+
             void loadModel(const std::string &filepath);
         };
-        sge_model(const Builder &builder);
-        ~sge_model();
-        sge_model(const sge_model&)=delete;
-        sge_model &operator=(const sge_model&)=delete;
 
-        static std::unique_ptr<sge_model> createModelFromFile(const std::string& filepath);
-        void bind();
-        void unbind();
-        void render();
+        Model(const Builder &builder);
+        ~Model();
+        Model(const Model&) = delete;
+        Model &operator=(const Model&) = delete;
 
-    private:
-        GLuint vbo{};
-    public:
+        static std::unique_ptr<Model> createModelFromFile(const std::string& filepath);
+
+        void bind() const;
+        void unbind() const;
+        void render() const;
+
         GLuint getVbo() const;
-
         GLuint getIbo() const;
-
         GLuint getVao() const;
-
         GLsizei getVertexCount() const;
-
         GLsizei getIndexCount() const;
 
     private:
-        // Vertex Buffer Object ID
-        GLuint ibo{}; // Index Buffer Object ID
-        GLuint vao{}; // Vertex Array Object ID
-        GLsizei vertexCount; // Number of indices in the index buffer
-        GLsizei indexCount; // Number of indices in the index buffer
-        bool hasIndexBuffer= false;
         void createVertexBuffer(const std::vector<Vertex> &vertices);
         void createIndexBuffer(const std::vector<uint32_t> &indices);
+
+        GLuint vbo{};
+        GLuint ibo{};
+        GLuint vao{};
+        GLsizei vertexCount{};
+        GLsizei indexCount{};
+        bool hasIndexBuffer{false};
     };
 }
+
 // Define the custom hash function for Vertex in the std namespace
 namespace std {
-    using Vertex=SGE::actors::sge_model::Vertex;
+    using Vertex = SGE::actors::Model::Vertex;
     template <>
     struct hash<Vertex> {
         size_t operator()(const Vertex& v) const {
             size_t hashValue = 0;
-            // Combine hash values of individual members
             hash_combine(hashValue, v.position.x);
             hash_combine(hashValue, v.position.y);
             hash_combine(hashValue, v.position.z);
@@ -93,7 +86,6 @@ namespace std {
         }
 
     private:
-        // Combine hash values using a common hash_combine function
         template <typename T>
         static void hash_combine(size_t& seed, const T& v) {
             std::hash<T> hasher;
@@ -102,5 +94,4 @@ namespace std {
     };
 }
 
-
-#endif //GLCPP_SGE_MODEL_H
+#endif //GLCPP_MODEL_H
