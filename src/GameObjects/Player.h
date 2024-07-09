@@ -13,7 +13,7 @@
 #include "../Graphics/ThirdPersonCamera.h"
 
 namespace SGE::actors{
-    class Player : Actor{
+    class Player : public Actor{
     public:
         void jump(float deltaTime) override;
         void move(glm::vec3 movement,float deltaTime) override;
@@ -21,14 +21,15 @@ namespace SGE::actors{
         void dash(float deltaTime) override;
         ~Player() override;
         Transform getTransform() override;
-        void update(float deltaTime);
+        void update(float deltaTime) override;
         float getMovementSpeed();
         void setMovementSpeed(float speed);
         float getJumpSpeed();
         void setJumpSpeed(float speed);
         Player();
-        void render();
-
+        void render() override;
+        SGE::graphics::Camera& getCamera();
+        glm::vec3 getColor() override;
     private:
         Transform transform{};
         SGE::graphics::Camera camera{};
@@ -50,14 +51,13 @@ namespace SGE::actors{
         double lastMouseX{},lastMouseY{};
         float yaw{0},pitch{0};
         glm::vec3 cameraPosition{0.0f, 0.0f, -10.0f};
-        float movementSpeed=10.f;
+        float movementSpeed=100.f;
         float jumpSpeed=10.f;
-        SGE::graphics::Shader shader{"vertex.vert", "fragment.frag"};
         std::shared_ptr<SGE::actors::Model> modelPtr;
-        glm::vec3 cameraOffset{-10,5,-10};
+        glm::vec3 cameraOffset{0,0,0};
 
 
-        glm::vec3 calculateDirection(double yaw, double pitch);
+        glm::vec3 calculateDirection(float yaw,float pitch);
 
         void handleMouseMovement();
     };

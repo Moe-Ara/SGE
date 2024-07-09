@@ -19,8 +19,9 @@ namespace SGE::graphics {
         void moveCamera(glm::vec3 position);
 
 
-        [[nodiscard]] const glm::mat4& getProjection() const;
-        [[nodiscard]] const glm::mat4& getView()const;
+        const glm::mat4& getView()const;
+
+        const glm::mat4& getProjection() const;
 
     private:
         glm::mat4 projectionMatrix{1.f};

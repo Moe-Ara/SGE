@@ -11,11 +11,19 @@
 #include "src/Graphics/Camera.h"
 #include "src/Utils/camera_manager.h"
 #include "src/GameObjects/Player.h"
+#include "src/GameObjects/npc.h"
 #include <chrono>
 void errorCallback(int error, const char *description) {
     std::cerr << "Error: " << description << std::endl;
 }
-
+void renderObjects(SGE::graphics::Shader& shader, SGE::actors::Actor& actor, SGE::graphics::Camera& camera){
+    shader.enable();
+    shader.setUniformMat4("transform", actor.getTransform().mat4());
+    shader.setUniformMat4("projection", camera.getProjection());
+    shader.setUniformMat4("view", camera.getView());
+    shader.setUniformFloat3("color", actor.getColor());
+    actor.render();
+}
 int main() {
     // Set GLFW error callback
     glfwSetErrorCallback(errorCallback);
@@ -58,7 +66,7 @@ int main() {
 
    /* SGE::graphics::Camera camera{};
 */
-    SGE::graphics::Camera camera{};
+//    SGE::graphics::Camera camera{};
     glm::mat4 ortho;
     ortho = glm::ortho(-14.0f, 16.0f, -10.0f, 12.0f, -12.0f, 12.0f);
 
@@ -92,8 +100,11 @@ int main() {
             lastMouseX = SGE::Input::input_handler::getMouseX();
         lastMouseY = SGE::Input::input_handler::getMouseY();*/
 //    SGE::graphics::camera_manager cameraManager(Camera);
+
     SGE::actors::Player player{};
-//    SGE::graphics::Shader shader("vertex.vert", "fragment.frag");
+    SGE::graphics::Shader shader("vertex.vert", "fragment.frag");
+
+    SGE::actors::npc NpC{};
 
     auto lastFrameTime = std::chrono::high_resolution_clock::now();
     while (!window.closed()) {
@@ -183,10 +194,11 @@ int main() {
 
 //        cameraManager.update(inputHandler);
         // Render the scene
-        window.clear();
-
         player.
-        update(deltaTime);
+                update(deltaTime);
+        window.clear();
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
         std::cout<<player.getTransform().translation.x<<", "<<player.getTransform().translation.y<< ", "<<player.getTransform().translation.z<<std::endl;
 //        player.render();
 
@@ -194,6 +206,10 @@ int main() {
 //        shader.enable();
 //        model->render();
 //        model->unbind();
+        renderObjects(shader,player, player.getCamera());
+        renderObjects(shader,NpC, player.getCamera());
+
+//player.render();
         window.update();
         lastFrameTime = currentFrameTime;
 

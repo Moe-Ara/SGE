@@ -18,6 +18,9 @@ namespace SGE::actors{
         virtual ~Actor(){};
         virtual Transform getTransform()=0;
         virtual void update(float deltaTime)=0;
+        virtual void render()=0;
+
+        virtual glm::vec3 getColor()=0;
     };
 }
 
