@@ -24,6 +24,8 @@ namespace SGE::graphics {
         void setUniformFloat3(const GLchar* name, glm::vec3 vector3);
         void setUniformFloat4(const GLchar* name, glm::vec4 vector4);
         void setUniformMat4(const GLchar* name, const glm::mat4& matrix);
+        void setUniformMat3(const GLchar* name, const glm::mat3& matrix);
+
 
     private:
         // Shader program ID

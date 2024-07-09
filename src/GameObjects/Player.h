@@ -51,7 +51,7 @@ namespace SGE::actors{
         double lastMouseX{},lastMouseY{};
         float yaw{0},pitch{0};
         glm::vec3 cameraPosition{0.0f, 0.0f, -10.0f};
-        float movementSpeed=100.f;
+        float movementSpeed=500.f;
         float jumpSpeed=10.f;
         std::shared_ptr<SGE::actors::Model> modelPtr;
         glm::vec3 cameraOffset{0,0,0};
