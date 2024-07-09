@@ -11,7 +11,7 @@ namespace SGE::actors {
     Player::~Player() {}
 
     Transform Player::getTransform() {
-        return transform;
+        return this->transform;
     }
 
     void Player::jump(float deltaTime) {
@@ -55,6 +55,8 @@ namespace SGE::actors {
         if (inputHandler.isKeyPressed(GLFW_KEY_D)) {
             movement += camera.getRight() * movementSpeed * deltaTime;
         }
+        //rotate player to face the direction the camera is facing
+        transform.rotation = glm::quat(glm::vec3(0.0f, glm::radians(yaw), 0.0f));
 
         // Handle mouse movement
         handleMouseMovement();

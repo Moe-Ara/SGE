@@ -142,6 +142,15 @@ namespace SGE::graphics {
             glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
         }
     }
+    void Shader::setUniformMat3(const GLchar *name, const glm::mat3 &matrix) {
+        enable();
+        GLint location = getUniformLocation(name);
+        if (location == -1) {
+            std::cerr << "Warning: uniform '" << name << "' doesn't exist in the shader!" << std::endl;
+        } else {
+            glUniformMatrix3fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
+        }
+    }
 
     GLint Shader::getUniformLocation(const GLchar *name) {
         GLint location = glGetUniformLocation(this->shader, name);
@@ -169,4 +178,6 @@ namespace SGE::graphics {
 
         return true;
     }
+
+
 }
