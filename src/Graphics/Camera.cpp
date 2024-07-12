@@ -8,7 +8,7 @@
 
 
 void
-SGE::graphics::Camera::setOrthographicProjection(float left, float right, float top, float bottom, float near,
+SGE::GRAPHICS::Camera::setOrthographicProjection(float left, float right, float top, float bottom, float near,
                                                  float far) {
     projectionMatrix = glm::mat4{1.0f};
     projectionMatrix[0][0] = 2.f / (right - left);
@@ -20,7 +20,7 @@ SGE::graphics::Camera::setOrthographicProjection(float left, float right, float 
 
 }
 
-void SGE::graphics::Camera::setPrespectiveProjection(float fovy, float aspect, float near, float far) {
+void SGE::GRAPHICS::Camera::setPrespectiveProjection(float fovy, float aspect, float near, float far) {
     assert(glm::abs(aspect - std::numeric_limits<float>::epsilon()) > 0.0f);
     const float tanHalfFovy = tan(fovy / 2.f);
     projectionMatrix = glm::mat4{0.0f};
@@ -31,7 +31,7 @@ void SGE::graphics::Camera::setPrespectiveProjection(float fovy, float aspect, f
     projectionMatrix[3][2] = -(far * near) / (far - near);
 }
 
-void SGE::graphics::Camera::setViewDirection(glm::vec3 position, glm::vec3 direction, glm::vec3 up) {
+void SGE::GRAPHICS::Camera::setViewDirection(glm::vec3 position, glm::vec3 direction, glm::vec3 up) {
     this->position = position;
     this->direction = glm::normalize(direction);
     this->up = glm::normalize(up);
@@ -54,11 +54,11 @@ void SGE::graphics::Camera::setViewDirection(glm::vec3 position, glm::vec3 direc
     viewMatrix[3][2] = -glm::dot(w, this->position);
 }
 
-void SGE::graphics::Camera::setViewTarget(glm::vec3 position, glm::vec3 target, glm::vec3 up) {
+void SGE::GRAPHICS::Camera::setViewTarget(glm::vec3 position, glm::vec3 target, glm::vec3 up) {
     setViewDirection(position, target - position, up);
 }
 
-void SGE::graphics::Camera::setViewYXZ(glm::vec3 position, glm::vec3 rotation) {
+void SGE::GRAPHICS::Camera::setViewYXZ(glm::vec3 position, glm::vec3 rotation) {
     const float c3 = glm::cos(rotation.z);
     const float s3 = glm::sin(rotation.z);
     const float c2 = glm::cos(rotation.x);
@@ -83,48 +83,58 @@ void SGE::graphics::Camera::setViewYXZ(glm::vec3 position, glm::vec3 rotation) {
     viewMatrix[3][2] = -glm::dot(w, position);
 }
 
-const glm::mat4 &SGE::graphics::Camera::getProjection() const {
+const glm::mat4 &SGE::GRAPHICS::Camera::getProjection() const {
     return projectionMatrix;
 
 }
 
-const glm::mat4 &SGE::graphics::Camera::getView() const {
+const glm::mat4 &SGE::GRAPHICS::Camera::getView() const {
     return viewMatrix;
 }
 
-glm::vec3 SGE::graphics::Camera::getRight() const {
+glm::vec3 SGE::GRAPHICS::Camera::getRight() const {
     return glm::vec3(this->getView()[0]);
 }
 
-glm::vec3 SGE::graphics::Camera::getRelativeUp() const {
+glm::vec3 SGE::GRAPHICS::Camera::getRelativeUp() const {
     return glm::vec3(this->getView()[1]);
 }
 
-glm::vec3 SGE::graphics::Camera::getForward() const {
+glm::vec3 SGE::GRAPHICS::Camera::getForward() const {
     return glm::vec3(this->getView()[2]);
 }
 
-glm::vec3 SGE::graphics::Camera::getAbsoluteUp() const {
+glm::vec3 SGE::GRAPHICS::Camera::getAbsoluteUp() const {
     return glm::vec3(0.f,-1.f,0.f);
 }
 
-glm::vec3 SGE::graphics::Camera::getPositionFromViewMatrix() {
+glm::vec3 SGE::GRAPHICS::Camera::getPositionFromViewMatrix() {
     // Extract the position from the fourth column of the view matrix
     return glm::vec3(getView()[3]);
 }
 
-glm::mat3 SGE::graphics::Camera::getRotationFromViewMatrix() {
+glm::mat3 SGE::GRAPHICS::Camera::getRotationFromViewMatrix() {
     // Extract the orientation vectors (forward, up, and right) from the view matrix
     glm::vec3 forward(getView()[0][2], getView()[1][2], getView()[2][2]);
     glm::vec3 up(getView()[0][1], getView()[1][1], getView()[2][1]);
     glm::vec3 right(getView()[0][0], getView()[1][0], getView()[2][0]);
 
-    // Construct a rotation matrix from the orientation vectors
+    // Construct a m_rotation matrix from the orientation vectors
     return glm::mat3(right, up, -forward); // Note: Negate the forward vector to convert from left-handed to right-handed coordinate system
 }
 
-void SGE::graphics::Camera::moveCamera(glm::vec3 position) {
+void SGE::GRAPHICS::Camera::moveCamera(glm::vec3 position) {
     setViewDirection(position, direction,up);
+
+}
+
+float SGE::GRAPHICS::Camera::getYaw() {
+    glm::vec3 forward = getForward();
+    // Calculate the yaw angle (rotation around the y-axis)
+    return glm::degrees(atan2(forward.x, forward.z));
+}
+
+void SGE::GRAPHICS::Camera::update(float deltaTime,std::shared_ptr<SGE::GAMEOBJECTS::Actor> target) {
 
 }
 

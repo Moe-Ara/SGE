@@ -1,11 +1,11 @@
 #ifndef SGE_GRAPHICS_SHADER_H
 #define SGE_GRAPHICS_SHADER_H
 
-#include <GL/glew.h>
+#include <gl/glew.h>
 #include <glm/glm.hpp>
 #include <string>
 
-namespace SGE::graphics {
+namespace SGE::GRAPHICS {
 
     class Shader {
     public:

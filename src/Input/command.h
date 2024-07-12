@@ -6,10 +6,10 @@
 #define GLCPP_COMMAND_H
 
 #include "../GameObjects/Actor.h"
-namespace SGE::Input{
+namespace SGE::INPUT{
     class command{
     public:
-        virtual void run(actors::Actor& actor, float deltaTime)=0;
+        virtual void run(SGE::GAMEOBJECTS::Actor& actor, float deltaTime)=0;
         virtual bool isRunnable()=0;
         virtual ~command(){};
     };

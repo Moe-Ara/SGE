@@ -6,13 +6,13 @@
 #include <vector>
 #include <string>
 #include <gl/glew.h>
-#include "../../external/tiny_object_loader.h"
+//#include "../../external/tiny_object_loader.h"
 #include <stdexcept>
 #include <memory>
 #include <unordered_map>
 #include <iostream>
 
-namespace SGE::actors {
+namespace SGE::GAMEOBJECTS {
     class Model {
     public:
         struct Vertex {
@@ -27,33 +27,18 @@ namespace SGE::actors {
             }
         };
 
-        struct Builder {
-            std::vector<Vertex> vertices{};
-            std::vector<uint32_t> indices{};
-
-            void loadModel(const std::string &filepath);
-        };
-
-        Model(const Builder &builder);
+        Model(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
         ~Model();
         Model(const Model&) = delete;
-        Model &operator=(const Model&) = delete;
-
-        static std::unique_ptr<Model> createModelFromFile(const std::string& filepath);
+        Model& operator=(const Model&) = delete;
 
         void bind() const;
         void unbind() const;
         void render() const;
 
-        GLuint getVbo() const;
-        GLuint getIbo() const;
-        GLuint getVao() const;
-        GLsizei getVertexCount() const;
-        GLsizei getIndexCount() const;
-
     private:
-        void createVertexBuffer(const std::vector<Vertex> &vertices);
-        void createIndexBuffer(const std::vector<uint32_t> &indices);
+        void createVertexBuffer(const std::vector<Vertex>& vertices);
+        void createIndexBuffer(const std::vector<uint32_t>& indices);
 
         GLuint vbo{};
         GLuint ibo{};
@@ -66,7 +51,7 @@ namespace SGE::actors {
 
 // Define the custom hash function for Vertex in the std namespace
 namespace std {
-    using Vertex = SGE::actors::Model::Vertex;
+    using Vertex = SGE::GAMEOBJECTS::Model::Vertex;
     template <>
     struct hash<Vertex> {
         size_t operator()(const Vertex& v) const {

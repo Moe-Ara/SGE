@@ -6,7 +6,9 @@
 #define GLCPP_CAMERA_H
 #include <memory>
 #include <glm/glm.hpp>
-namespace SGE::graphics {
+#include "../GameObjects/Actor.h"
+
+namespace SGE::GRAPHICS {
     class Camera {
     public:
 
@@ -38,6 +40,8 @@ namespace SGE::graphics {
         [[nodiscard]] glm::vec3 getForward() const;
         glm::vec3 getPositionFromViewMatrix();
         glm::mat3 getRotationFromViewMatrix();
+        virtual float getYaw();
+        virtual void update(float deltaTime,std::shared_ptr<SGE::GAMEOBJECTS::Actor> target);
 
     };
 }
