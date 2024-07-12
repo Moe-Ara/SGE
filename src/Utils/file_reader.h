@@ -11,7 +11,7 @@
 #include <iostream>
 #include <sstream>
 
-namespace SGE::utils{
+namespace SGE::UTILS{
 
     std::string read_file(const std::string& filename);
 

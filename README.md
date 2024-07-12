@@ -41,7 +41,7 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-Simple Game Engine (SGE) is a project built for the purpose of learning and experimenting with modern OpenGL. This engine supports basic rendering, camera control, lighting, and player movement mechanics. It serves as an excellent starting point for anyone interested in game development and computer graphics.
+Simple Game Engine (SGE) is a project built for the purpose of learning and experimenting with modern OpenGL. This engine supports basic rendering, camera control, lighting, and player m_movement mechanics. It serves as an excellent starting point for anyone interested in game development and computer GRAPHICS.
 
 Here's why:
 * Learn the basics of 3D rendering using OpenGL

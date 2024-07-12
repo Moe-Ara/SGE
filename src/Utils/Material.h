@@ -6,7 +6,7 @@
 #define GLCPP_MATERIAL_H
 
 #include <glm/vec3.hpp>
-namespace SGE::utils{
+namespace SGE::UTILS{
 struct Material{
     glm::vec3 ambient;
     glm::vec3 diffuse;

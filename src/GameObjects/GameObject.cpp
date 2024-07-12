@@ -1,25 +1,30 @@
+//
+// Created by Mohamad on 11/07/2024.
+//
+
 #include "GameObject.h"
 
-namespace SGE::actors {
+SGE::GAMEOBJECTS::GameObject::GameObject(Transform transform,
+                                         std::shared_ptr<Model> model): transform(transform),model(model) {
 
-    glm::mat4 Transform::mat4() const {
-        glm::mat4 transformMatrix = glm::mat4(1.0f);
-        transformMatrix = glm::translate(transformMatrix, translation);
-        transformMatrix *= glm::mat4_cast(rotation);
-        transformMatrix = glm::scale(transformMatrix, scale);
-        return transformMatrix;
+}
+
+SGE::GAMEOBJECTS::GameObject::~GameObject() {
+
+}
+
+SGE::GAMEOBJECTS::Transform &SGE::GAMEOBJECTS::GameObject::getTransform() {
+    return transform;;
+}
+
+void SGE::GAMEOBJECTS::GameObject::update(float deltaTime) {
+
+}
+
+void SGE::GAMEOBJECTS::GameObject::render() {
+    if (model) {
+        model->bind();
+        model->render();
+        model->unbind();
     }
-
-    glm::mat3 Transform::normalMatrix() const {
-        glm::mat4 transformMatrix = mat4();
-        glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(transformMatrix)));
-
-        // Checking the determinant to avoid returning an invalid matrix
-        if (glm::determinant(glm::mat3(transformMatrix)) == 0.0f) {
-            return glm::mat3(1.0f);
-        }
-
-        return normalMatrix;
-    }
-
 }

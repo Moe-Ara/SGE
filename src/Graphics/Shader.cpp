@@ -5,7 +5,7 @@
 #include "../Utils/file_reader.h"
 #include <iostream>
 
-namespace SGE::graphics {
+namespace SGE::GRAPHICS {
 
     // Constructor
     Shader::Shader(const char* vertPath, const char* fragPath)
@@ -30,8 +30,8 @@ namespace SGE::graphics {
         auto vertex = glCreateShader(GL_VERTEX_SHADER);
         auto fragment = glCreateShader(GL_FRAGMENT_SHADER);
 
-        std::string vertCodeStr = utils::read_file(vert_shader_path.c_str());
-        std::string fragCodeStr = utils::read_file(frag_shader_path.c_str());
+        std::string vertCodeStr = UTILS::read_file(vert_shader_path.c_str());
+        std::string fragCodeStr = UTILS::read_file(frag_shader_path.c_str());
 
         const char* vertCode = vertCodeStr.c_str();
         const char* fragCode = fragCodeStr.c_str();

@@ -6,7 +6,7 @@
 #define GLCPP_LIGHT_H
 
 #include <glm/vec3.hpp>
-namespace SGE::utils{
+namespace SGE::UTILS{
     struct Light {
         glm::vec3 position;
         glm::vec3 ambient;

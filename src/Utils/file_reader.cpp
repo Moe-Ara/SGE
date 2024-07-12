@@ -3,7 +3,7 @@
 //
 #include "file_reader.h"
 
-std::string SGE::utils::read_file(const std::string &filename) {
+std::string SGE::UTILS::read_file(const std::string &filename) {
 
         std::ifstream file(filename);
         if (!file.is_open()) {
