@@ -8,6 +8,9 @@ int main() {
     } catch (SGE::EXCEPTIONS::SGE_Exception &e) {
         e.what();
     }
+    catch (const std::exception &e) {
+        std::cerr << "Standard exception: " << e.what() << std::endl;
+    }
     catch (...) {
         std::cerr << "UnknownError" << std::endl;
     }

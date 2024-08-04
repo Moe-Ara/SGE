@@ -21,7 +21,7 @@ void SGE::DEBUGGING::CoordinateSystem::render(const glm::mat4 &view, const glm::
     model = glm::translate(model, glm::vec3(-0.9f, -0.9f, 0.0f)); // Translate to bottom-left corner
     model = glm::scale(model, glm::vec3(2.1f, 2.1f, 2.1f)); // Scale down
 
-    shader.setUniformMat4("transform", model);
+    shader.setUniformMat4("m_transform", model);
     shader.setUniformMat4("view", view);
     shader.setUniformMat4("projection", projection);
 

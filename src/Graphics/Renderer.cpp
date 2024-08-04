@@ -5,6 +5,7 @@
 #include "Renderer.h"
 #include "../Utils/Light.h"
 #include "../Utils/Material.h"
+#include "../Physics/Colliders/OBBCollider.h"
 
 SGE::GRAPHICS::Renderer::Renderer(std::shared_ptr<SGE::GRAPHICS::Shader> shader,
                                   std::shared_ptr<SGE::GRAPHICS::Camera> camera) :shader(shader),camera(camera){
@@ -58,5 +59,16 @@ void SGE::GRAPHICS::Renderer::renderObject(const std::shared_ptr<SGE::GAMEOBJECT
     shader->setUniformMat4("transform", object->getTransform().mat4());
     shader->setUniformMat3("normalMatrix", object->getTransform().normalMatrix());
     shader->setUniformFloat3("uniformColor", object->getColor());
+
     object->render();
+
+//    object->getTransform().render(*shader,*SGE::UTILS::ModelLoader::loadModelFromFile("sphereLow.obj"));
+    //For Debugging Only
+    if(object->getCollider()){
+            shader->setUniformFloat3("uniformColor", {0.f, 255.f, 0.f});
+            object->getCollider()->render();
+
+
+
+    }
 }

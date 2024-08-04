@@ -12,8 +12,9 @@
 
         class SGE_Exception : public std::runtime_error{
         public:
-            SGE_Exception(char const* const message) throw();
+            SGE_Exception(char const* message) throw();
             virtual char const* what() const throw();
+            ~SGE_Exception() override{};
         private:
             std::string m_message;
         };

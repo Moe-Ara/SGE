@@ -11,7 +11,6 @@
 #include <memory>
 #include <unordered_map>
 #include <iostream>
-
 namespace SGE::GAMEOBJECTS {
     class Model {
     public:
@@ -35,16 +34,33 @@ namespace SGE::GAMEOBJECTS {
         void bind() const;
         void unbind() const;
         void render() const;
+        const std::vector<Vertex>& getVertices();
+
+
+        const std::vector<uint32_t> &getMIndices() const;
+
+        GLuint getMVbo() const;
+
+        GLuint getMIbo() const;
+
+        GLuint getMVao() const;
+
+        GLsizei getMVertexCount() const;
+
+        GLsizei getMIndexCount() const;
+
+        bool isHasIndexBuffer() const;
 
     private:
         void createVertexBuffer(const std::vector<Vertex>& vertices);
         void createIndexBuffer(const std::vector<uint32_t>& indices);
-
-        GLuint vbo{};
-        GLuint ibo{};
-        GLuint vao{};
-        GLsizei vertexCount{};
-        GLsizei indexCount{};
+        std::vector<Vertex> m_vertices;
+        std::vector<uint32_t> m_indices ;
+        GLuint m_vbo{};
+        GLuint m_ibo{};
+        GLuint m_vao{};
+        GLsizei m_vertexCount{};
+        GLsizei m_indexCount{};
         bool hasIndexBuffer{false};
     };
 }

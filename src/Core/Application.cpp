@@ -1,5 +1,7 @@
 #include "Application.h"
 #include "../Graphics/Scene.h"
+#include "../Debugging/Cubenpc.h"
+#include "../Debugging/capsulenpc.h"
 
 namespace SGE::CORE {
 
@@ -38,7 +40,7 @@ namespace SGE::CORE {
 
             m_scene->update(deltaTime);
             m_mainCamera->update(deltaTime, m_player_ptr);
-
+            SGE::PHYSICS::PhysicsEngine::update(*m_scene, deltaTime);
             window.clear();
             m_renderer->render(*m_scene);
 
@@ -67,12 +69,22 @@ namespace SGE::CORE {
         m_shaderProgram = std::make_shared<SGE::GRAPHICS::Shader>("vertex.vert", "fragment.frag");
         m_renderer = std::make_shared<SGE::GRAPHICS::Renderer>(m_shaderProgram, m_mainCamera);
         m_scene = std::make_shared<SGE::GRAPHICS::Scene>();
-
+        std::shared_ptr<SGE::DEBUGGING::Cubenpc> localNpc= std::make_shared<SGE::DEBUGGING::Cubenpc>(0);
+        std::shared_ptr<SGE::DEBUGGING::capsulenpc> cnpc= std::make_shared<SGE::DEBUGGING::capsulenpc>(0);
+        localNpc->getTransform().translate(glm::vec3 (0.f,0.f,-10.f));
+        cnpc->getTransform().translate(glm::vec3 (0.f,0.f,10.f));
         m_player_ptr = std::make_shared<SGE::DEBUGGING::Player>(123, *m_mainCamera);
-        m_npc_ptr = std::make_shared<SGE::DEBUGGING::npc>(0);
 
+        m_npc_ptr = std::make_shared<SGE::DEBUGGING::npc>(0);
+        auto floor=std::make_shared<SGE::DEBUGGING::Floor>();
+        m_scene->addObject(floor);
         m_scene->addObject(m_player_ptr);
+        m_scene->addObject(localNpc);
+
         m_scene->addObject(m_npc_ptr);
+
+        m_scene->addObject(cnpc);
+
     }
 
     void Application::initInputHandler() {

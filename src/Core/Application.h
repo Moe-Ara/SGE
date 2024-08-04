@@ -18,10 +18,14 @@
 #include "../Utils/Material.h"
 #include "../Utils/Light.h"
 #include "../Debugging/CoordinateSystem.h"
+#include "../Debugging/Floor.h"
+#include "../Debugging/Cubenpc.h"
+
 #include <chrono>
 #include "../Exceptions/SGE_Exception.h"
 #include "../Graphics/Scene.h"
 #include "../Graphics/Renderer.h"
+#include "../Physics/PhysicsEngine.h"
 
 namespace SGE::CORE {
     class Application {
@@ -51,6 +55,8 @@ namespace SGE::CORE {
 
         std::shared_ptr<SGE::DEBUGGING::Player> m_player_ptr;
         std::shared_ptr<SGE::DEBUGGING::npc> m_npc_ptr;
+
+
     };
 }
 

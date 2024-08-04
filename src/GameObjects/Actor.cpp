@@ -20,14 +20,23 @@ namespace SGE::GAMEOBJECTS {
     }
 
     void GAMEOBJECTS::Actor::update(float deltaTime) {
+
+    }
+
+    void Actor::move(glm::vec3 movement, float deltaTime) {
+
+    }
+
+    void Actor::updatePhysics(float deltaTime) {
         glm::vec3 acceleration = accumulatedForces / mass;
         velocity += acceleration * deltaTime;
         move(velocity, deltaTime);
         // Reset forces after applying them
         accumulatedForces = glm::vec3(0.0f);
+        SGE::GAMEOBJECTS::GameObject::updatePhysics(deltaTime);
     }
 
-    void Actor::move(glm::vec3 movement, float deltaTime) {
-
+    long Actor::getId() const {
+        return ID;
     }
 }

@@ -27,4 +27,20 @@ void SGE::GAMEOBJECTS::GameObject::render() {
         model->render();
         model->unbind();
     }
+
+}
+
+void SGE::GAMEOBJECTS::GameObject::updatePhysics(float deltaTime) {
+    if(getCollider()){
+        getCollider()->update(getTransform());
+
+    }
+}
+
+void SGE::GAMEOBJECTS::GameObject::applyForce(const glm::vec3 &force) {
+
+}
+
+std::shared_ptr<SGE::PHYSICS::Collider> SGE::GAMEOBJECTS::GameObject::getCollider() {
+    return nullptr;
 }

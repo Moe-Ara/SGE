@@ -8,6 +8,8 @@
 #include <glm/vec3.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/quaternion_float.hpp>
+#include "../Graphics/Shader.h"
+#include "Model.h"
 
 namespace SGE::GAMEOBJECTS{
     class Transform {
@@ -30,6 +32,8 @@ namespace SGE::GAMEOBJECTS{
         void rotate(const glm::quat& rotation);
         [[nodiscard]] glm::mat4 mat4() const;
         [[nodiscard]] glm::mat3 normalMatrix() const;
+        void render(SGE::GRAPHICS::Shader& shader, const SGE::GAMEOBJECTS::Model& model) const;
+        friend bool operator== (const Transform& leftHandSide,const Transform& rightHandSide);
     };
 }
 

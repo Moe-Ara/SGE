@@ -12,6 +12,9 @@
 #include "../Graphics/Shader.h"
 #include "../Graphics/ThirdPersonCamera.h"
 #include "../Utils/ModelLoader.h"
+#include "../Physics/Colliders/SphereCollider.h"
+#include "../Physics/Colliders/CubeCollider.h"
+#include "../Physics/Colliders/CapsuleCollider.h"
 
 namespace SGE::DEBUGGING {
     class Player : public SGE::GAMEOBJECTS::Actor {
@@ -40,6 +43,8 @@ namespace SGE::DEBUGGING {
 
         [[nodiscard]] glm::vec3 getColor() const override;
 
+        std::shared_ptr<SGE::PHYSICS::Collider> getCollider() override;
+
     private:
 
         SGE::INPUT::InputHandler inputHandler{
@@ -56,7 +61,7 @@ namespace SGE::DEBUGGING {
                         GLFW_MOUSE_BUTTON_LEFT}
         };
 //        Model::Builder builder;
-//        Model model{};
+//        Model m_model{};
         double lastMouseX{}, lastMouseY{};
         float yaw{0}, pitch{0};
         glm::vec3 cameraPosition{0.0f, 0.0f, -10.0f};
@@ -66,7 +71,7 @@ namespace SGE::DEBUGGING {
         glm::vec3 cameraOffset{0, 0, 0};
         glm::vec3 m_movement{};
         SGE::GRAPHICS::Camera &m_thirdPersonCamera;
-
+        std::shared_ptr<SGE::PHYSICS::CapsuleCollider> m_collider;
         void handleMovement(float deltaTime);
     };
 }

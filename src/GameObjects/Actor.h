@@ -19,18 +19,21 @@ namespace SGE::GAMEOBJECTS {
 
         virtual void move(glm::vec3 movement, float deltaTime);
 
-        virtual void applyForce(const glm::vec3 &force);
+        virtual void applyForce(const glm::vec3 &force) override;
 
         virtual void update(float deltaTime);
+
+        long getId() const;
 
         //DEBUGGING PURPOSES REMOVE LATER
         [[nodiscard]] virtual glm::vec3 getColor() const = 0;
 
     protected:
+        void updatePhysics(float deltaTime) override;
         glm::vec3 velocity;
         glm::vec3 accumulatedForces;
         float mass;
-        long ID;
+        long ID{};
     };
 }
 

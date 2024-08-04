@@ -2,7 +2,7 @@
 
 namespace SGE::GAMEOBJECTS {
 
-    Model::Model(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) {
+    Model::Model(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices): m_vertices{vertices},m_indices(indices) {
         createVertexBuffer(vertices);
         if (!indices.empty()) {
             createIndexBuffer(indices);
@@ -10,20 +10,22 @@ namespace SGE::GAMEOBJECTS {
     }
 
     Model::~Model() {
-        glDeleteBuffers(1, &vbo);
-        glDeleteBuffers(1, &ibo);
-        glDeleteVertexArrays(1, &vao);
+        glDeleteBuffers(1, &m_vbo);
+        glDeleteBuffers(1, &m_ibo);
+        glDeleteVertexArrays(1, &m_vao);
     }
-
+    const std::vector<SGE::GAMEOBJECTS::Model::Vertex> &Model::getVertices() {
+        return m_vertices;
+    }
     void Model::createVertexBuffer(const std::vector<Vertex>& vertices) {
-        vertexCount = static_cast<GLsizei>(vertices.size());
+        m_vertexCount = static_cast<GLsizei>(vertices.size());
 
-        glGenBuffers(1, &vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glGenBuffers(1, &m_vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
-        glGenVertexArrays(1, &vao);
-        glBindVertexArray(vao);
+        glGenVertexArrays(1, &m_vao);
+        glBindVertexArray(m_vao);
 
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
         glEnableVertexAttribArray(0);
@@ -41,18 +43,18 @@ namespace SGE::GAMEOBJECTS {
     }
 
     void Model::createIndexBuffer(const std::vector<uint32_t>& indices) {
-        indexCount = static_cast<GLsizei>(indices.size());
+        m_indexCount = static_cast<GLsizei>(indices.size());
         hasIndexBuffer = true;
 
-        glGenBuffers(1, &ibo);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+        glGenBuffers(1, &m_ibo);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint32_t), indices.data(), GL_STATIC_DRAW);
     }
 
     void Model::bind() const {
-        glBindVertexArray(vao);
+        glBindVertexArray(m_vao);
         if (hasIndexBuffer) {
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
         }
     }
 
@@ -63,12 +65,43 @@ namespace SGE::GAMEOBJECTS {
     void Model::render() const {
         bind();
         if (hasIndexBuffer) {
-            glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_INT, 0);
         } else {
-            glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+            glDrawArrays(GL_TRIANGLES, 0, m_vertexCount);
         }
         unbind();
     }
+
+    const std::vector<uint32_t> &Model::getMIndices() const {
+        return m_indices;
+    }
+
+    GLuint Model::getMVbo() const {
+        return m_vbo;
+    }
+
+    GLuint Model::getMIbo() const {
+        return m_ibo;
+    }
+
+    GLuint Model::getMVao() const {
+        return m_vao;
+    }
+
+    GLsizei Model::getMVertexCount() const {
+        return m_vertexCount;
+    }
+
+    GLsizei Model::getMIndexCount() const {
+        return m_indexCount;
+    }
+
+    bool Model::isHasIndexBuffer() const {
+        return hasIndexBuffer;
+    }
+
+
+
 
 }
 
