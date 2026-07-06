@@ -1,5 +1,10 @@
 #include "Application.h"
 #include "../Graphics/Scene.h"
+#include "../Graphics/Shader.h"
+#include "../Physics/PhysicsEngine.h"
+#include "../Events/EventSystem.h"
+#include "../GameObjects/Actor.h"
+#include <iostream>
 
 namespace SGE::CORE {
 
@@ -9,17 +14,28 @@ namespace SGE::CORE {
 
     Application::Application()
             : m_inputHandler(nullptr), m_mainCamera(nullptr),
-              m_shaderProgram(nullptr), m_scene(nullptr), m_renderer(nullptr) {
+              m_shaderProgram(nullptr), m_scene(nullptr), m_renderer(nullptr), window(nullptr), physicsEngine(nullptr), eventSystem(nullptr) {
         setup();
     }
 
     void Application::setup() {
         initWindow();
-        initInputHandler();
-        initScene();
+        if (!SGE::GRAPHICS::Window::getInstance().isHeadless()) {
+            initInputHandler();
+            initScene();
+        }
     }
 
     void Application::run() {
+        if (!initialize()) {
+            return;
+        }
+
+        if (SGE::GRAPHICS::Window::getInstance().isHeadless()) {
+            std::cout << "Headless mode: skipping game loop." << std::endl;
+            return;
+        }
+
         gameLoop();
     }
 
@@ -40,7 +56,8 @@ namespace SGE::CORE {
             m_mainCamera->update(deltaTime, m_player_ptr);
 
             window.clear();
-            m_renderer->render(*m_scene);
+            std::vector<std::shared_ptr<SGE::GAMEOBJECTS::Actor>> actors;
+            m_renderer->render(m_mainCamera, actors);
 
             window.update();
             lastFrameTime = currentFrameTime;
@@ -48,13 +65,17 @@ namespace SGE::CORE {
     }
 
     Application::~Application() {
+        cleanup();
         glfwTerminate();
     }
 
     void Application::initWindow() {
         glfwSetErrorCallback(errorCallback);
 
-        auto &window = SGE::GRAPHICS::Window::getInstance("SGE", 960, 540);
+        auto& windowInstance = SGE::GRAPHICS::Window::getInstance("SGE", 960, 540);
+        if (windowInstance.isHeadless()) {
+            return;
+        }
 
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);
@@ -82,4 +103,62 @@ namespace SGE::CORE {
         SGE::INPUT::InputHandler::setupKeyHandler(SGE::GRAPHICS::Window::getInstance());
         m_inputHandler = std::make_shared<SGE::INPUT::InputHandler>(keysToMonitor, buttonsToMonitor);
     }
+
+    bool Application::initialize() {
+        auto& windowInstance = SGE::GRAPHICS::Window::getInstance();
+        if (windowInstance.isHeadless()) {
+            std::cout << "Headless mode: skipping GLFW/OpenGL initialization." << std::endl;
+            return true;
+        }
+
+        window = windowInstance.getMWindow();
+        if (!window) {
+            std::cerr << "Failed to access GLFW window" << std::endl;
+            return false;
+        }
+
+        // Create physics engine
+        physicsEngine = std::make_shared<SGE::PHYSICS::PhysicsEngine>();
+
+        // Create event system
+        eventSystem = std::make_shared<SGE::EVENTS::EventSystem>();
+
+        // Setup event handlers
+        setupEventHandlers();
+
+        return true;
+    }
+
+    void Application::setupEventHandlers() {
+        // Subscribe to collision events
+        eventSystem->subscribe("collision", [this](const SGE::EVENTS::IEvent& event) {
+            handleCollision(static_cast<const SGE::EVENTS::Event&>(event));
+        });
+    }
+
+    void Application::handleCollision(const SGE::EVENTS::Event& event) {
+        // Process collision events
+        std::cout << "Collision detected!" << std::endl;
+    }
+
+    void Application::processInput() {
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+            glfwSetWindowShouldClose(window, true);
+    }
+
+    void Application::render() {
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+    }
+
+    void Application::framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+        glViewport(0, 0, width, height);
+    }
+
+    void Application::cleanup() {
+        if (window) {
+            glfwTerminate();
+        }
+    }
 }
+

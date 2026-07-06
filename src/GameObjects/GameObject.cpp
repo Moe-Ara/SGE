@@ -4,27 +4,64 @@
 
 #include "GameObject.h"
 
-SGE::GAMEOBJECTS::GameObject::GameObject(Transform transform,
-                                         std::shared_ptr<Model> model): transform(transform),model(model) {
+#include <utility>
 
+namespace SGE::GAMEOBJECTS {
+
+GameObject::GameObject(Transform transform, std::shared_ptr<Model> model)
+    : id(""), name(""), transform(transform), model(std::move(model)), physicsComponent(nullptr), eventSystem(nullptr) {
 }
 
-SGE::GAMEOBJECTS::GameObject::~GameObject() {
-
+std::string GameObject::getId() const {
+    return id;
 }
 
-SGE::GAMEOBJECTS::Transform &SGE::GAMEOBJECTS::GameObject::getTransform() {
-    return transform;;
+std::string GameObject::getName() const {
+    return name;
 }
 
-void SGE::GAMEOBJECTS::GameObject::update(float deltaTime) {
-
+Transform GameObject::getTransform() const {
+    return transform;
 }
 
-void SGE::GAMEOBJECTS::GameObject::render() {
+void GameObject::setTransform(const Transform& t) {
+    transform = t;
+}
+
+Transform& GameObject::getTransformRef() {
+    return transform;
+}
+
+std::shared_ptr<PHYSICS::IPhysicsComponent> GameObject::getPhysicsComponent() const {
+    return physicsComponent;
+}
+
+void GameObject::setPhysicsComponent(std::shared_ptr<PHYSICS::IPhysicsComponent> component) {
+    physicsComponent = std::move(component);
+}
+
+void GameObject::setEventSystem(std::shared_ptr<EVENTS::IEventSystem> eventSys) {
+    eventSystem = std::move(eventSys);
+}
+
+std::shared_ptr<EVENTS::IEventSystem> GameObject::getEventSystem() const {
+    return eventSystem;
+}
+
+void GameObject::update(float deltaTime) {
+    (void)deltaTime;
+}
+
+glm::vec3 GameObject::getColor() const {
+    return glm::vec3(1.0f, 1.0f, 1.0f);
+}
+
+void GameObject::render() {
     if (model) {
         model->bind();
         model->render();
         model->unbind();
     }
 }
+
+} // namespace SGE::GAMEOBJECTS

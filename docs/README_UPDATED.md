@@ -1,4 +1,3 @@
-
 <div id="top"></div>
 
 <!-- PROJECT LOGO -->
@@ -32,6 +31,7 @@
         <li><a href="#installation">Installation</a></li>
       </ul>
     </li>
+    <li><a href="#physics-and-event-system">Physics and Event System</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
     <li><a href="#contributing">Contributing</a></li>
     <li><a href="#contact">Contact</a></li>
@@ -41,7 +41,7 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-Simple Game Engine (SGE) is a project built for the purpose of learning and experimenting with modern OpenGL. This engine supports basic rendering, camera control, lighting, and player m_movement mechanics. It serves as an excellent starting point for anyone interested in game development and computer GRAPHICS.
+Simple Game Engine (SGE) is a project built for the purpose of learning and experimenting with modern OpenGL. This engine supports basic rendering, camera control, lighting, and player movement mechanics. It serves as an excellent starting point for anyone interested in game development and computer graphics.
 
 Here's why:
 * Learn the basics of 3D rendering using OpenGL
@@ -111,6 +111,33 @@ Make sure you have the following dependencies installed:
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
+<!-- PHYSICS AND EVENT SYSTEM -->
+## Physics and Event System
+
+The engine now includes a robust physics system with an event-driven architecture:
+
+### Physics System Features:
+- **Actor-based design**: All game objects are actors that can have physics components
+- **Component-based architecture**: Physics components are separate from game objects
+- **Event-driven physics**: Physics updates can trigger events for other systems
+- **Collision detection ready**: Built-in support for collision handling
+
+### Event System Features:
+- **Type-safe event handling**: Events are strongly typed
+- **Easy subscription**: Systems can easily subscribe to specific events
+- **Cross-system communication**: Physics, rendering, and game logic can communicate through events
+- **Extensible design**: Easy to add new event types
+
+### Key Components:
+- `Actor`: Base class for all game entities
+- `IPhysicsComponent`: Interface for physics behavior
+- `BasePhysicsComponent`: Default implementation
+- `EventSystem`: Centralized event handling
+- `IEventSystem`: Interface for event systems
+- `CollisionEvent`: Specific event type for collisions
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 <!-- ROADMAP -->
 ## Roadmap
 
@@ -118,10 +145,13 @@ Make sure you have the following dependencies installed:
 - [x] Camera Controls
 - [x] Basic Lighting
 - [x] Player Movement
+- [x] Collision Detection
+- [x] Physics Engine
 - [ ] Advanced Lighting Techniques
 - [ ] Shadows
-- [ ] Collision Detection
-- [ ] Physics Engine
+- [ ] Sound system integration
+- [ ] Network multiplayer support
+- [ ] Asset management system
 
 See the [open issues](https://github.com/yourusername/SimpleGameEngine/issues) for a full list of proposed features (and known issues).
 

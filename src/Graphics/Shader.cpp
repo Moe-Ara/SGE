@@ -17,6 +17,10 @@ namespace SGE::GRAPHICS {
         glDeleteProgram(shader);
     }
 
+    void Shader::use() {
+        enable();
+    }
+
     void Shader::enable() const {
         glUseProgram(shader);
     }
@@ -95,7 +99,42 @@ namespace SGE::GRAPHICS {
         return true;
     }
 
-    void Shader::setUniformFloat1(const GLchar *name, float value) {
+    void Shader::setMat4(const std::string &name, const glm::mat4 &mat) const {
+        setUniformMat4(name.c_str(), mat);
+    }
+
+    void Shader::setVec3(const std::string &name, const glm::vec3 &value) const {
+        setUniformFloat3(name.c_str(), value);
+    }
+
+    void Shader::setFloat(const std::string &name, float value) const {
+        setUniformFloat1(name.c_str(), value);
+    }
+
+    void Shader::setInt(const std::string &name, int value) const {
+        setUniformInt1(name.c_str(), value);
+    }
+
+    void Shader::setPBRMaterial(const glm::vec3& albedo, float metallic, float roughness, float ao) {
+        (void)albedo; (void)metallic; (void)roughness; (void)ao;
+    }
+
+    void Shader::setPBRLight(const std::string& lightName,
+                             const glm::vec3& position,
+                             const glm::vec3& color,
+                             float intensity) {
+        (void)lightName; (void)position; (void)color; (void)intensity;
+    }
+
+    void Shader::setLightSpaceMatrix(const glm::mat4& lightSpaceMatrix) {
+        (void)lightSpaceMatrix;
+    }
+
+    void Shader::setLightPos(const glm::vec3& lightPos) {
+        (void)lightPos;
+    }
+
+    void Shader::setUniformFloat1(const GLchar *name, float value) const {
         enable();  // Ensure shader is active
         GLint location = getUniformLocation(name);
         if (location != -1) {
@@ -103,7 +142,7 @@ namespace SGE::GRAPHICS {
         }
     }
 
-    void Shader::setUniformInt1(const GLchar *name, int value) {
+    void Shader::setUniformInt1(const GLchar *name, int value) const {
         enable();  // Ensure shader is active
         GLint location = getUniformLocation(name);
         if (location != -1) {
@@ -111,7 +150,7 @@ namespace SGE::GRAPHICS {
         }
     }
 
-    void Shader::setUniformFloat2(const GLchar *name, glm::vec2 vector2) {
+    void Shader::setUniformFloat2(const GLchar *name, glm::vec2 vector2) const {
         enable();  // Ensure shader is active
         GLint location = getUniformLocation(name);
         if (location != -1) {
@@ -119,7 +158,7 @@ namespace SGE::GRAPHICS {
         }
     }
 
-    void Shader::setUniformFloat3(const GLchar *name, glm::vec3 vector3) {
+    void Shader::setUniformFloat3(const GLchar *name, glm::vec3 vector3) const {
         enable();  // Ensure shader is active
         GLint location = getUniformLocation(name);
         if (location != -1) {
@@ -127,7 +166,7 @@ namespace SGE::GRAPHICS {
         }
     }
 
-    void Shader::setUniformFloat4(const GLchar *name, glm::vec4 vector4) {
+    void Shader::setUniformFloat4(const GLchar *name, glm::vec4 vector4) const {
         enable();  // Ensure shader is active
         GLint location = getUniformLocation(name);
         if (location != -1) {
@@ -135,14 +174,14 @@ namespace SGE::GRAPHICS {
         }
     }
 
-    void Shader::setUniformMat4(const GLchar *name, const glm::mat4& matrix) {
+    void Shader::setUniformMat4(const GLchar *name, const glm::mat4& matrix) const {
         enable();  // Ensure shader is active
         GLint location = getUniformLocation(name);
         if (location != -1) {
             glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
         }
     }
-    void Shader::setUniformMat3(const GLchar *name, const glm::mat3 &matrix) {
+    void Shader::setUniformMat3(const GLchar *name, const glm::mat3 &matrix) const {
         enable();  // Ensure shader is active
         GLint location = getUniformLocation(name);
         if (location == -1) {
@@ -152,7 +191,11 @@ namespace SGE::GRAPHICS {
         }
     }
 
-    GLint Shader::getUniformLocation(const GLchar *name) {
+    void Shader::setMat3(const std::string &name, const glm::mat3 &mat) const {
+        setUniformMat3(name.c_str(), mat);
+    }
+
+    GLint Shader::getUniformLocation(const GLchar *name) const {
         GLint location = glGetUniformLocation(this->shader, name);
         if (location == -1) {
             std::cerr << "Warning: uniform '" << name << "' doesn't exist in the shader!" << std::endl;
@@ -161,3 +204,4 @@ namespace SGE::GRAPHICS {
     }
 
 }
+

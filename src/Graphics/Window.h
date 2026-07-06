@@ -1,7 +1,7 @@
 #ifndef GLCPP_WINDOW_H
 #define GLCPP_WINDOW_H
 
-#include <gl/glew.h>
+#include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <memory>
 #include <string>
@@ -21,6 +21,7 @@ namespace SGE::GRAPHICS {
         void update();
         void clear() const;
         bool closed() const;
+        bool isHeadless() const;
         GLFWwindow* getMWindow() const;
         int getHeight() const;
         int getWidth() const;
@@ -36,6 +37,7 @@ namespace SGE::GRAPHICS {
         std::string m_title;
         int m_width, m_height;
         GLFWwindow* m_window;
+        bool m_headless;
 
         static void windowResize(GLFWwindow* window, int width, int height);
     };

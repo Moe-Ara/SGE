@@ -5,12 +5,14 @@
 #ifndef GLCPP_COORDINATESYSTEM_H
 #define GLCPP_COORDINATESYSTEM_H
 
+#include <GL/glew.h>
+#include <glm/glm.hpp>
 #include "../Graphics/Shader.h"
 
 namespace SGE::DEBUGGING {
     class CoordinateSystem {
     public:
-        CoordinateSystem(SGE::GRAPHICS::Shader &shader);
+        explicit CoordinateSystem(SGE::GRAPHICS::Shader &shader);
 
         ~CoordinateSystem();
 

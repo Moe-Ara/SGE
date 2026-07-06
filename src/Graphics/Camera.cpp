@@ -4,8 +4,15 @@
 
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
+#include <cassert>
+#include <limits>
 #include "Camera.h"
 
+namespace SGE::GRAPHICS {
+
+Camera::Camera(glm::vec3 position) : position(position) {
+    setViewDirection(position, direction, upVec);
+}
 
 void
 SGE::GRAPHICS::Camera::setOrthographicProjection(float left, float right, float top, float bottom, float near,
@@ -128,6 +135,14 @@ void SGE::GRAPHICS::Camera::moveCamera(glm::vec3 position) {
 
 }
 
+glm::mat4 SGE::GRAPHICS::Camera::getViewMatrix() const {
+    return viewMatrix;
+}
+
+glm::mat4 SGE::GRAPHICS::Camera::getProjectionMatrix() const {
+    return projectionMatrix;
+}
+
 float SGE::GRAPHICS::Camera::getYaw() {
     glm::vec3 forward = getForward();
     // Calculate the yaw angle (rotation around the y-axis)
@@ -135,6 +150,9 @@ float SGE::GRAPHICS::Camera::getYaw() {
 }
 
 void SGE::GRAPHICS::Camera::update(float deltaTime,std::shared_ptr<SGE::GAMEOBJECTS::Actor> target) {
-
+    (void)deltaTime;
+    (void)target;
 }
+
+} // namespace SGE::GRAPHICS
 

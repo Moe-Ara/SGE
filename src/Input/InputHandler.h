@@ -1,7 +1,7 @@
 #ifndef GLCPP_INPUTHANDLER_H
 #define GLCPP_INPUTHANDLER_H
 
-#include <gl/glew.h>
+#include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <vector>
 #include <map>

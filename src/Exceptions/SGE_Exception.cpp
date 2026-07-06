@@ -4,14 +4,13 @@
 
 #include "SGE_Exception.h"
 
-namespace SGE {
-    namespace EXCEPTIONS {
-        SGE_Exception::SGE_Exception(const char *const message) throw(): runtime_error(message), m_message(message){
+namespace SGE::EXCEPTIONS {
 
-        }
+SGE_Exception::SGE_Exception(const char* message)
+    : std::runtime_error(message ? message : ""), m_message(message ? message : "") {}
 
-        char const *SGE_Exception::what() const throw() {
-            return ("SGE_ERROR:"+m_message).c_str();
-        }
-    } // EXCEPTIONS
-} // SGE
+const char* SGE_Exception::what() const noexcept {
+    return m_message.c_str();
+}
+
+} // namespace SGE::EXCEPTIONS

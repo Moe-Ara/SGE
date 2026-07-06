@@ -7,40 +7,36 @@
 
 #include "../GameObjects/Actor.h"
 #include "../Graphics/Camera.h"
-#include "../Input/command.h"
 #include "../Input/InputHandler.h"
 #include "../Graphics/Shader.h"
 #include "../Graphics/ThirdPersonCamera.h"
 #include "../Utils/ModelLoader.h"
-
+#include "../Physics/BasePhysicsComponent.h"
 namespace SGE::DEBUGGING {
     class Player : public SGE::GAMEOBJECTS::Actor {
+    private:
+        std::unique_ptr<SGE::PHYSICS::BasePhysicsComponent> physicsComponent;
+
     public:
-        void jump(float deltaTime);
-
-        void move(glm::vec3 movement, float deltaTime) override;
-
-        void fire(float deltaTime);
-
-        void dash(float deltaTime);
-
-        ~Player() override;
-
-        void update(float deltaTime) override;
-
-        float getMovementSpeed();
-
-        void setMovementSpeed(float speed);
-
-        float getJumpSpeed();
-
-        void setJumpSpeed(float speed);
-
         Player(long id, SGE::GRAPHICS::Camera &thirdPersonCamera);
 
-        [[nodiscard]] glm::vec3 getColor() const override;
+        ~Player() override = default;
+
+        void update(float deltaTime) override;
+        void move(glm::vec3 movement, float deltaTime) override;
+        void render(const std::shared_ptr<SGE::GRAPHICS::Shader>& shader) override;
+        glm::vec3 getColor() const override;
+        void jump(float force);
+        float getMovementSpeed();
+        void setMovementSpeed(float speed);
+        float getJumpSpeed();
+        void setJumpSpeed(float speed);
+        void fire(float deltaTime);
+        void dash(float deltaTime);
 
     private:
+        void handleMovement(float deltaTime);
+        void handleInput(float deltaTime);
 
         SGE::INPUT::InputHandler inputHandler{
                 {GLFW_KEY_A,
@@ -67,9 +63,9 @@ namespace SGE::DEBUGGING {
         glm::vec3 m_movement{};
         SGE::GRAPHICS::Camera &m_thirdPersonCamera;
 
-        void handleMovement(float deltaTime);
     };
 }
 
 
 #endif //GLCPP_PLAYER_H
+

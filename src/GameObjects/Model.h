@@ -5,7 +5,7 @@
 #include <glm/vec2.hpp>
 #include <vector>
 #include <string>
-#include <gl/glew.h>
+#include <GL/glew.h>
 //#include "../../external/tiny_object_loader.h"
 #include <stdexcept>
 #include <memory>

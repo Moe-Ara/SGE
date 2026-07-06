@@ -20,10 +20,17 @@ namespace SGE::DEBUGGING {
     }
 
     void npc::move(glm::vec3 movement, float deltaTime) {
+        // Fixed: Added basic movement implementation
+        getTransformRef().translate(movement * deltaTime);
     }
 
     glm::vec3 npc::getColor() const {
         return {1.0f, 1.0f, 1.0f};
     }
 
+    void npc::render(const std::shared_ptr<SGE::GRAPHICS::Shader>& shader) {
+        (void)shader;
+    }
+
 }
+

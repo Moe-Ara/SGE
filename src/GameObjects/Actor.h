@@ -7,6 +7,10 @@
 
 #include "GameObject.h"
 #include "Transform.h"
+#include "../Physics/IPhysicsComponent.h"
+#include <memory>
+#include <glm/glm.hpp>
+#include "../Graphics/Shader.h"
 
 namespace SGE::GAMEOBJECTS {
     class Actor : public GameObject {
@@ -18,21 +22,26 @@ namespace SGE::GAMEOBJECTS {
         virtual ~Actor() = default;
 
         virtual void move(glm::vec3 movement, float deltaTime);
-
-        virtual void applyForce(const glm::vec3 &force);
-
         virtual void update(float deltaTime);
+        virtual void applyForce(const glm::vec3& force);
 
-        //DEBUGGING PURPOSES REMOVE LATER
-        [[nodiscard]] virtual glm::vec3 getColor() const = 0;
+        // Physics interface
+        virtual void setPhysicsComponent(std::unique_ptr<PHYSICS::IPhysicsComponent> component);
+        virtual PHYSICS::IPhysicsComponent* getPhysicsComponent() const;
+        virtual bool hasPhysicsComponent() const;
+
+        virtual void render(const std::shared_ptr<SGE::GRAPHICS::Shader>& shader) = 0;
+        glm::vec3 getPosition() const { return position; }
+        void setPosition(const glm::vec3& position) { this->position = position; }
 
     protected:
+        std::unique_ptr<PHYSICS::IPhysicsComponent> physicsComponent;
+        glm::vec3 position;
+        long ID;
+        float mass;
         glm::vec3 velocity;
         glm::vec3 accumulatedForces;
-        float mass;
-        long ID;
     };
-}
-
-
+};
 #endif //GLCPP_ACTOR_H
+

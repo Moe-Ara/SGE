@@ -1,0 +1,142 @@
+//
+// Created by Mohamad on 12/07/2024.
+//
+
+#include "Renderer.h"
+#include "../Utils/Light.h"
+#include "../Utils/Material.h"
+#include "Camera.h"
+#include "../GameObjects/Actor.h"
+#include "../GameObjects/Model.h"
+
+SGE::GRAPHICS::Renderer::Renderer(std::shared_ptr<SGE::GRAPHICS::Shader> shader,
+                                  std::shared_ptr<SGE::GRAPHICS::Camera> camera) :shader(shader),camera(camera){
+
+}
+
+void SGE::GRAPHICS::Renderer::render(const SGE::GRAPHICS::Scene &scene) {
+    // Set light properties
+    SGE::UTILS::Light light;
+    light.position = glm::vec3(10.0f, 5.0f, 0.0f);
+    light.ambient = glm::vec3(0.3f,0.3f, 0.3f);
+    light.diffuse = glm::vec3(0.5f, 0.5f, 0.5f);
+    light.specular = glm::vec3(1.0f, 1.0f, 1.0f);
+
+    // Set material properties
+    SGE::UTILS::Material material;
+    material.ambient = glm::vec3(1.0f, 0.5f, 0.31f);
+    material.diffuse = glm::vec3(1.0f, 0.5f, 0.31f);
+    material.specular = glm::vec3(0.5f, 0.5f, 0.5f);
+    material.shininess = 32.0f;
+    shader->enable();
+
+
+
+    shader->setUniformMat4("projection", camera->getProjection());
+    shader->setUniformMat4("view", camera->getView());
+
+
+    shader->setUniformFloat3("material.ambient", material.ambient);
+    shader->setUniformFloat3("material.diffuse", material.diffuse);
+    shader->setUniformFloat3("material.specular", material.specular);
+    shader->setUniformFloat1("material.shininess", material.shininess);
+
+    shader->setUniformFloat3("light.position", light.position);
+    shader->setUniformFloat3("light.ambient", light.ambient);
+    shader->setUniformFloat3("light.diffuse", light.diffuse);
+    shader->setUniformFloat3("light.specular", light.specular);
+
+    // Set view position (camera position)
+    shader->setUniformFloat3("viewPos", camera->getPositionFromViewMatrix());
+
+
+    for (const auto& object : scene.getGameObjects()) {
+        renderObject(object);
+    }
+
+    shader->disable();
+}
+
+void SGE::GRAPHICS::Renderer::renderObject(const std::shared_ptr<SGE::GAMEOBJECTS::GameObject> &object) {
+    shader->setUniformMat4("transform", object->getTransform().mat4());
+    shader->setUniformMat3("normalMatrix", object->getTransform().normalMatrix());
+    shader->setUniformFloat3("uniformColor", object->getColor());
+    object->render();
+}
+
+Renderer::Renderer() : shadowsEnabled(false) {
+    initialize();
+}
+
+Renderer::~Renderer() {
+    // Cleanup resources if needed
+}
+
+void Renderer::initialize() {
+    // Initialize renderer components
+}
+
+void Renderer::render(const std::shared_ptr<Camera>& camera, const std::vector<std::shared_ptr<Actor>>& actors) {
+    // Set up view and projection matrices
+    glm::mat4 view = camera->getViewMatrix();
+    glm::mat4 projection = camera->getProjectionMatrix();
+
+    // Enable shader
+    if (shader) {
+        shader->use();
+
+        // Set basic uniforms
+        shader->setVec3("viewPos", camera->getPosition());
+        shader->setMat4("projection", projection);
+        shader->setMat4("view", view);
+    }
+
+    // Render scene with PBR lighting
+    for (const auto& actor : actors) {
+        if (actor) {
+            actor->render(shader);
+        }
+    }
+}
+
+void Renderer::setupPBRRendering(const std::shared_ptr<Shader>& shader) {
+    if (shader && camera) {
+        shader->use();
+
+        // Set basic uniforms
+        shader->setVec3("viewPos", camera->getPosition());
+    }
+}
+
+void Renderer::setPBRMaterial(const std::shared_ptr<Shader>& shader,
+                              const glm::vec3& albedo, float metallic, float roughness, float ao) {
+    if (shader) {
+        shader->setPBRMaterial(albedo, metallic, roughness, ao);
+    }
+}
+
+void Renderer::setPBRLight(const std::shared_ptr<Shader>& shader,
+                           const std::string& lightName,
+                           const glm::vec3& position,
+                           const glm::vec3& color,
+                           float intensity) {
+    if (shader) {
+        shader->setPBRLight(lightName, position, color, intensity);
+    }
+}
+
+void Renderer::setupShadowRendering(const std::shared_ptr<Shader>& shader,
+                                    const glm::mat4& lightSpaceMatrix,
+                                    const glm::vec3& lightPos) {
+    if (shader) {
+        shader->use();
+        // Set shadow uniforms
+        shader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+        shader->setVec3("lightPos", lightPos);
+    }
+}
+
+void Renderer::enableShadows(bool enable) {
+    shadowsEnabled = enable;
+}
+

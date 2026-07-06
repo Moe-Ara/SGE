@@ -6,17 +6,18 @@
 #define GLCPP_SGE_EXCEPTION_H
 
 #include <stdexcept>
+#include <string>
 
+namespace SGE::EXCEPTIONS {
 
-    namespace SGE::EXCEPTIONS {
+    class SGE_Exception : public std::runtime_error {
+    public:
+        explicit SGE_Exception(const char* message);
+        const char* what() const noexcept override;
 
-        class SGE_Exception : public std::runtime_error{
-        public:
-            SGE_Exception(char const* const message) throw();
-            virtual char const* what() const throw();
-        private:
-            std::string m_message;
-        };
+    private:
+        std::string m_message;
+    };
 
     } // EXCEPTIONS
 // SGE

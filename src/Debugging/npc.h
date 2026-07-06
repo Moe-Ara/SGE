@@ -9,16 +9,14 @@
 #include "../Utils/ModelLoader.h"
 
 namespace SGE::DEBUGGING {
-    class npc : public GAMEOBJECTS::Actor {
+    class npc : public SGE::GAMEOBJECTS::Actor {
     public:
-
-        void move(glm::vec3 movement, float deltaTime) override;
-
+        explicit npc(long id);
         ~npc() override;
 
-        explicit npc(long id);
-
+        void move(glm::vec3 movement, float deltaTime) override;
         [[nodiscard]] glm::vec3 getColor() const override;
+        void render(const std::shared_ptr<SGE::GRAPHICS::Shader>& shader) override;
 
     private:
         std::shared_ptr<SGE::GAMEOBJECTS::Model> modelPtr;

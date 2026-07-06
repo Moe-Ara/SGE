@@ -13,6 +13,8 @@ namespace SGE::GAMEOBJECTS{
     class Transform {
     public:
         const glm::vec3 &getMTranslation() const;
+        glm::vec3 getPosition() const { return m_translation; }
+        void setPosition(const glm::vec3& position) { m_translation = position; }
 
         const glm::vec3 &getMScale() const;
 

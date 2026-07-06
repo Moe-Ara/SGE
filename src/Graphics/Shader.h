@@ -1,47 +1,56 @@
-#ifndef SGE_GRAPHICS_SHADER_H
-#define SGE_GRAPHICS_SHADER_H
+#ifndef SHADER_H
+#define SHADER_H
 
-#include <gl/glew.h>
-#include <glm/glm.hpp>
+#include <GL/glew.h>
 #include <string>
+#include <glm/glm.hpp>
 
 namespace SGE::GRAPHICS {
-
     class Shader {
+    private:
+        std::string vert_shader_path;
+        std::string frag_shader_path;
+        GLuint shader{0};
+
     public:
-        // Constructor and Destructor
-        Shader(const char* vertPath, const char* fragPath);
+        Shader(const char* vertexPath, const char* fragmentPath);
         ~Shader();
 
-        // Enable and disable the shader program
+        void use();
+        void setMat4(const std::string &name, const glm::mat4 &mat) const;
+        void setMat3(const std::string &name, const glm::mat3 &mat) const;
+        void setVec3(const std::string &name, const glm::vec3 &value) const;
+        void setFloat(const std::string &name, float value) const;
+        void setInt(const std::string &name, int value) const;
+
         void enable() const;
         void disable();
 
-        // Set uniform variables
-        void setUniformFloat1(const GLchar* name, float value);
-        void setUniformInt1(const GLchar* name, int value);
-        void setUniformFloat2(const GLchar* name, glm::vec2 vector2);
-        void setUniformFloat3(const GLchar* name, glm::vec3 vector3);
-        void setUniformFloat4(const GLchar* name, glm::vec4 vector4);
-        void setUniformMat4(const GLchar* name, const glm::mat4& matrix);
-        void setUniformMat3(const GLchar* name, const glm::mat3& matrix);
+        // PBR specific uniforms
+        void setPBRMaterial(const glm::vec3& albedo, float metallic, float roughness, float ao);
+        void setPBRLight(const std::string& lightName,
+                         const glm::vec3& position,
+                         const glm::vec3& color,
+                         float intensity);
 
+        // Shadow specific uniforms
+        void setLightSpaceMatrix(const glm::mat4& lightSpaceMatrix);
+        void setLightPos(const glm::vec3& lightPos);
 
     private:
-        // Shader program ID
-        GLuint shader;
-        // File paths for the vertex and fragment shaders
-        std::string vert_shader_path;
-        std::string frag_shader_path;
-
-        // Load and compile shaders, and link the shader program
         GLuint load();
         bool compileShader(GLuint shader, const char* code);
-        GLint getUniformLocation(const GLchar* name);
-
-        // Check for compilation errors
-        bool check_compilation_errors(GLuint shader, const char* code);
+        GLint getUniformLocation(const GLchar *name) const;
+    public:
+        void setUniformFloat1(const GLchar *name, float value) const;
+        void setUniformInt1(const GLchar *name, int value) const;
+        void setUniformFloat2(const GLchar *name, glm::vec2 vector2) const;
+        void setUniformFloat3(const GLchar *name, glm::vec3 vector3) const;
+        void setUniformFloat4(const GLchar *name, glm::vec4 vector4) const;
+        void setUniformMat4(const GLchar *name, const glm::mat4& matrix) const;
+        void setUniformMat3(const GLchar *name, const glm::mat3 &matrix) const;
     };
 }
 
-#endif // SGE_GRAPHICS_SHADER_H
+#endif
+
