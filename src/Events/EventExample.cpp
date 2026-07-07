@@ -4,8 +4,6 @@
 
 #include "EventSystem.h"
 #include "CollisionEvent.h"
-#include "../Physics/BasePhysicsComponent.h"
-#include "../GameObjects/Actor.h"
 #include <iostream>
 
 namespace SGE::EVENTS {

@@ -1,7 +1,7 @@
 #ifndef GLCPP_WINDOW_H
 #define GLCPP_WINDOW_H
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <memory>
 #include <string>

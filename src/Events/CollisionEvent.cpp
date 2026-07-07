@@ -6,33 +6,33 @@
 
 namespace SGE::EVENTS {
     CollisionEvent::CollisionEvent(const std::string& name,
-                                  const std::shared_ptr<PHYSICS::BasePhysicsComponent>& compA,
-                                  const std::shared_ptr<PHYSICS::BasePhysicsComponent>& compB,
+                                  entt::entity a,
+                                  entt::entity b,
                                   const glm::vec3& point,
                                   const glm::vec3& normal)
-        : eventType("collision"), eventName(name), componentA(compA), componentB(compB),
+        : eventType("collision"), eventName(name), entityA(a), entityB(b),
           collisionPoint(point), collisionNormal(normal) {}
-    
+
     std::string CollisionEvent::getType() const {
         return eventType;
     }
-    
+
     std::string CollisionEvent::getName() const {
         return eventName;
     }
-    
-    std::shared_ptr<PHYSICS::BasePhysicsComponent> CollisionEvent::getComponentA() const {
-        return componentA;
+
+    entt::entity CollisionEvent::getEntityA() const {
+        return entityA;
     }
-    
-    std::shared_ptr<PHYSICS::BasePhysicsComponent> CollisionEvent::getComponentB() const {
-        return componentB;
+
+    entt::entity CollisionEvent::getEntityB() const {
+        return entityB;
     }
-    
+
     glm::vec3 CollisionEvent::getCollisionPoint() const {
         return collisionPoint;
     }
-    
+
     glm::vec3 CollisionEvent::getCollisionNormal() const {
         return collisionNormal;
     }

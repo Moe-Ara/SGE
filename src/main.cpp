@@ -1,4 +1,5 @@
 #include "Core/Application.h"
+#include "Exceptions/SGE_Exception.h"
 #include <exception>
 #include <iostream>
 

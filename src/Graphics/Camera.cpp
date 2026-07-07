@@ -143,16 +143,5 @@ glm::mat4 SGE::GRAPHICS::Camera::getProjectionMatrix() const {
     return projectionMatrix;
 }
 
-float SGE::GRAPHICS::Camera::getYaw() {
-    glm::vec3 forward = getForward();
-    // Calculate the yaw angle (rotation around the y-axis)
-    return glm::degrees(atan2(forward.x, forward.z));
-}
-
-void SGE::GRAPHICS::Camera::update(float deltaTime,std::shared_ptr<SGE::GAMEOBJECTS::Actor> target) {
-    (void)deltaTime;
-    (void)target;
-}
-
 } // namespace SGE::GRAPHICS
 

@@ -60,10 +60,15 @@ Here's why:
 
 This project is built using the following technologies and libraries:
 
-* [OpenGL](https://www.opengl.org/)
+* [OpenGL](https://www.opengl.org/) (3.3 core)
 * [GLFW](https://www.glfw.org/)
-* [GLEW](http://glew.sourceforge.net/)
+* [GLAD](https://glad.dav1d.de/) (vendored, generated loader)
 * [GLM](https://glm.g-truc.net/0.9.9/index.html)
+* [EnTT](https://github.com/skypjack/entt) (vendored, ECS core)
+* [Dear ImGui](https://github.com/ocornut/imgui) (in-app debug/editor overlay)
+
+See [docs/ARCHITECTURE.md](ARCHITECTURE.md) for how these fit together, how to extend
+the engine, and a gap list of what's missing for a production-scale game.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -74,6 +79,10 @@ To get a local copy up and running, follow these simple steps.
 
 ### Prerequisites
 
-Make sure you have the following dependencies installed:
-* GLFW
+Make sure you have the following dependencies installed (Debian/Ubuntu package names
+shown; use vcpkg or your OS's package manager equivalents elsewhere):
+* GLFW (`libglfw3-dev`)
+* GLM (`libglm-dev`)
+* Dear ImGui (`libimgui-dev`)
+* A C++20 compiler + CMake 3.16+
 

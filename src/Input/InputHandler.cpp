@@ -57,17 +57,23 @@ namespace SGE::INPUT {
     }
 
     void InputHandler::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+        (void)window;
+        (void)scancode;
+        (void)mods;
         for (InputHandler *handler : m_instances) {
             handler->setIsKeyPressed(key, action != GLFW_RELEASE);
         }
     }
 
     void InputHandler::cursor_position_callback(GLFWwindow *window, double xpos, double ypos) {
+        (void)window;
         m_mouseX = xpos;
         m_mouseY = ypos;
     }
 
     void InputHandler::mouse_button_callback(GLFWwindow *window, int button, int action, int mods) {
+        (void)window;
+        (void)mods;
         for (InputHandler *handler : m_instances) {
             handler->setIsButtonPressed(button, action != GLFW_RELEASE);
         }

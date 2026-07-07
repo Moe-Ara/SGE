@@ -14,7 +14,7 @@ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
   endif()
 endif()
 
-project(SGE VERSION 0.1.0 LANGUAGES CXX)
+project(SGE VERSION 0.1.0 LANGUAGES CXX C)
 
 # Defaults and policy
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -36,14 +36,22 @@ file(GLOB_RECURSE SGE_HDR CONFIGURE_DEPENDS
 )
 
 add_executable(SGE
-    "${CMAKE_SOURCE_DIR}/src/main.cpp"
     ${SGE_SRC}
     ${SGE_HDR}
+    "${CMAKE_SOURCE_DIR}/external/glad/src/gl.c"
+    "${CMAKE_SOURCE_DIR}/external/imgui_backends/imgui_impl_glfw.cpp"
+    "${CMAKE_SOURCE_DIR}/external/imgui_backends/imgui_impl_opengl3.cpp"
 )
 
 # Add project root to include path so existing includes like
 # #include "src/Core/Application.h" resolve correctly.
 target_include_directories(SGE PRIVATE "${CMAKE_SOURCE_DIR}")
+
+# ---------- GLAD (vendored, generated for gl:core=3.3) ----------
+target_include_directories(SGE PRIVATE "${CMAKE_SOURCE_DIR}/external/glad/include")
+
+# ---------- EnTT (vendored, header-only ECS) ----------
+target_include_directories(SGE PRIVATE "${CMAKE_SOURCE_DIR}/external/entt")
 
 # ---------- OpenGL (robust) ----------
 find_package(OpenGL REQUIRED)
@@ -105,51 +113,23 @@ else()
   message(STATUS "Using GLFW target: ${_GLFW_TARGET}")
 endif()
 
-# ---------- GLEW ----------
-set(_GLEW_TARGET "")
-# try config targets (vcpkg)
-find_package(glew CONFIG QUIET)
-if(TARGET glew::glew)
-  set(_GLEW_TARGET glew::glew)
+# ---------- Dear ImGui (system package libimgui-dev, backends vendored) ----------
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(IMGUI REQUIRED IMPORTED_TARGET imgui)
+target_include_directories(SGE PRIVATE "${CMAKE_SOURCE_DIR}/external/imgui_backends")
+
+set(_IMGUI_OPENGL3_BACKEND "${CMAKE_SOURCE_DIR}/external/imgui_backends/imgui_impl_opengl3.cpp")
+set_source_files_properties(${_IMGUI_OPENGL3_BACKEND} PROPERTIES
+  COMPILE_DEFINITIONS "IMGUI_IMPL_OPENGL_LOADER_CUSTOM"
+)
+if(MSVC)
+  set_source_files_properties(${_IMGUI_OPENGL3_BACKEND} PROPERTIES
+    COMPILE_OPTIONS "/FI${CMAKE_SOURCE_DIR}/external/glad/include/glad/gl.h"
+  )
 else()
-  # try FindGLEW
-  find_package(GLEW QUIET)
-  if(TARGET GLEW::GLEW)
-    set(_GLEW_TARGET GLEW::GLEW)
-  endif()
-endif()
-
-if(NOT _GLEW_TARGET)
-  # fallback: try to locate headers and library manually
-  find_path(_GLEW_INCLUDE_DIR NAMES GL/glew.h PATHS
-    $ENV{VCPKG_ROOT}/installed
-    ${CMAKE_SOURCE_DIR}/vcpkg/installed
-    /usr/include
-    /usr/local/include
-    NO_DEFAULT_PATH
+  set_source_files_properties(${_IMGUI_OPENGL3_BACKEND} PROPERTIES
+    COMPILE_OPTIONS "-include${CMAKE_SOURCE_DIR}/external/glad/include/glad/gl.h"
   )
-  find_library(_GLEW_LIBRARY NAMES GLEW glew glew32 glew32s PATHS
-    $ENV{VCPKG_ROOT}/installed
-    ${CMAKE_SOURCE_DIR}/vcpkg/installed
-    /usr/lib
-    /usr/local/lib
-    NO_DEFAULT_PATH
-  )
-  if(NOT _GLEW_INCLUDE_DIR)
-    find_path(_GLEW_INCLUDE_DIR GL/glew.h)
-  endif()
-  if(NOT _GLEW_LIBRARY)
-    find_library(_GLEW_LIBRARY NAMES GLEW glew glew32 glew32s)
-  endif()
-
-  if(_GLEW_INCLUDE_DIR AND _GLEW_LIBRARY)
-    message(STATUS "Found GLEW include: ${_GLEW_INCLUDE_DIR}, lib: ${_GLEW_LIBRARY}")
-    target_include_directories(SGE PRIVATE ${_GLEW_INCLUDE_DIR})
-    set(_GLEW_TARGET ${_GLEW_LIBRARY})
-  else()
-    message(STATUS "GLEW not found. Install via vcpkg: 'vcpkg install glew' or use your OS package manager.")
-    message(FATAL_ERROR "Could not locate GLEW. Configure CMake with -DCMAKE_TOOLCHAIN_FILE=/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake if using vcpkg.")
-  endif()
 endif()
 
 # ---------- GLM (header-only) ----------
@@ -179,12 +159,16 @@ else()
   target_link_libraries(SGE PRIVATE ${_OPENGL_LINK_TARGET})
 endif()
 
-# Link GLEW (can be a target or a library path)
-if(TARGET ${_GLEW_TARGET})
-  target_link_libraries(SGE PRIVATE ${_GLEW_TARGET})
-else()
-  target_link_libraries(SGE PRIVATE ${_GLEW_TARGET})
+# Link Dear ImGui (system package, found via pkg-config above)
+target_link_libraries(SGE PRIVATE PkgConfig::IMGUI)
+
+# GLAD needs dl on platforms where the loader falls back to dlopen
+if(NOT WIN32 AND NOT APPLE)
+  target_link_libraries(SGE PRIVATE ${CMAKE_DL_LIBS})
 endif()
+
+find_package(Threads REQUIRED)
+target_link_libraries(SGE PRIVATE Threads::Threads)
 
 # Link GLFW (target or library)
 if(TARGET ${_GLFW_TARGET})
@@ -215,6 +199,7 @@ endif()
 
 # Enable generation of compile_commands.json for tooling
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+target_compile_definitions(SGE PRIVATE GLM_ENABLE_EXPERIMENTAL)
 
 message(STATUS "Configured SGE (executable target: SGE)")
 message(STATUS "Using vcpkg toolchain: ${CMAKE_TOOLCHAIN_FILE}")

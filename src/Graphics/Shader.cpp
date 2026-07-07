@@ -116,22 +116,27 @@ namespace SGE::GRAPHICS {
     }
 
     void Shader::setPBRMaterial(const glm::vec3& albedo, float metallic, float roughness, float ao) {
-        (void)albedo; (void)metallic; (void)roughness; (void)ao;
+        setVec3("albedo", albedo);
+        setFloat("metallic", metallic);
+        setFloat("roughness", roughness);
+        setFloat("ao", ao);
     }
 
     void Shader::setPBRLight(const std::string& lightName,
                              const glm::vec3& position,
                              const glm::vec3& color,
                              float intensity) {
-        (void)lightName; (void)position; (void)color; (void)intensity;
+        setVec3(lightName + ".position", position);
+        setVec3(lightName + ".color", color);
+        setFloat(lightName + ".intensity", intensity);
     }
 
     void Shader::setLightSpaceMatrix(const glm::mat4& lightSpaceMatrix) {
-        (void)lightSpaceMatrix;
+        setMat4("lightSpaceMatrix", lightSpaceMatrix);
     }
 
     void Shader::setLightPos(const glm::vec3& lightPos) {
-        (void)lightPos;
+        setVec3("lightPos", lightPos);
     }
 
     void Shader::setUniformFloat1(const GLchar *name, float value) const {

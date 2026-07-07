@@ -22,41 +22,68 @@ namespace SGE::GRAPHICS {
         glfwTerminate();
     }
 
-    void Window::init() {
-        if (!glfwInit()) {
-            const char* display = std::getenv("DISPLAY");
-            const char* waylandDisplay = std::getenv("WAYLAND_DISPLAY");
-            if ((display == nullptr || display[0] == '\0') && (waylandDisplay == nullptr || waylandDisplay[0] == '\0')) {
-                m_headless = true;
-                glfwTerminate();
-                std::cerr << "Headless environment detected; running without a GLFW window." << std::endl;
-                return;
-            }
-            throw SGE::EXCEPTIONS::SGE_Exception("Failed to initialize GLFW");
-        }
+void Window::init() {
+    if (!glfwInit()) {
+        const char* display = std::getenv("DISPLAY");
+        const char* waylandDisplay = std::getenv("WAYLAND_DISPLAY");
 
-        m_window = glfwCreateWindow(m_width, m_height, m_title.c_str(), nullptr, nullptr);
-        if (!m_window) {
-            const char* display = std::getenv("DISPLAY");
-            const char* waylandDisplay = std::getenv("WAYLAND_DISPLAY");
-            if ((display == nullptr || display[0] == '\0') && (waylandDisplay == nullptr || waylandDisplay[0] == '\0')) {
-                m_headless = true;
-                glfwTerminate();
-                std::cerr << "Headless environment detected; running without a GLFW window." << std::endl;
-                return;
-            }
+        if ((display == nullptr || display[0] == '\0') &&
+            (waylandDisplay == nullptr || waylandDisplay[0] == '\0')) {
+            m_headless = true;
             glfwTerminate();
-            throw SGE::EXCEPTIONS::SGE_Exception("Failed to create GLFW window");
+            std::cerr << "Headless environment detected; running without a GLFW window." << std::endl;
+            return;
         }
 
-        glfwMakeContextCurrent(m_window);
-        glfwSetWindowUserPointer(m_window, this);
-        glfwSetWindowSizeCallback(m_window, windowResize);
-
-        if (glewInit() != GLEW_OK) {
-            throw SGE::EXCEPTIONS::SGE_Exception("Failed to initialize GLEW");
-        }
+        throw SGE::EXCEPTIONS::SGE_Exception("Failed to initialize GLFW");
     }
+
+    // Request an OpenGL 3.3 Core Profile context
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+#ifdef __APPLE__
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
+
+    m_window = glfwCreateWindow(
+        m_width,
+        m_height,
+        m_title.c_str(),
+        nullptr,
+        nullptr
+    );
+
+    if (!m_window) {
+        const char* display = std::getenv("DISPLAY");
+        const char* waylandDisplay = std::getenv("WAYLAND_DISPLAY");
+
+        if ((display == nullptr || display[0] == '\0') &&
+            (waylandDisplay == nullptr || waylandDisplay[0] == '\0')) {
+            m_headless = true;
+            glfwTerminate();
+            std::cerr << "Headless environment detected; running without a GLFW window." << std::endl;
+            return;
+        }
+
+        glfwTerminate();
+        throw SGE::EXCEPTIONS::SGE_Exception("Failed to create GLFW window");
+    }
+
+    glfwMakeContextCurrent(m_window);
+
+    glfwSetWindowUserPointer(m_window, this);
+    glfwSetWindowSizeCallback(m_window, windowResize);
+
+    if (!gladLoadGL(reinterpret_cast<GLADloadfunc>(glfwGetProcAddress))) {
+        throw SGE::EXCEPTIONS::SGE_Exception("Failed to initialize GLAD");
+    }
+
+    std::cout << "OpenGL Vendor   : " << glGetString(GL_VENDOR) << '\n';
+    std::cout << "OpenGL Renderer : " << glGetString(GL_RENDERER) << '\n';
+    std::cout << "OpenGL Version  : " << glGetString(GL_VERSION) << '\n';
+}
 
     void Window::update() {
         if (m_headless || !m_window) {
@@ -98,5 +125,9 @@ namespace SGE::GRAPHICS {
 
     void Window::windowResize(GLFWwindow* window, int width, int height) {
         glViewport(0, 0, width, height);
+        if (auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window))) {
+            self->m_width = width;
+            self->m_height = height;
+        }
     }
 }
