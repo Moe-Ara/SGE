@@ -30,7 +30,9 @@ namespace SGE::EDITOR {
         ImGui::NewFrame();
     }
 
-    void EditorUI::draw(entt::registry& registry) {
+    void EditorUI::draw(entt::registry& registry, SGE::CORE::EngineMode mode) {
+        drawToolbar(mode);
+
         ImGui::Begin("Scene");
         drawEntityList(registry);
         ImGui::End();
@@ -43,6 +45,32 @@ namespace SGE::EDITOR {
     void EditorUI::endFrame() {
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    }
+
+    bool EditorUI::consumePlayToggleRequest() {
+        const bool requested = playToggleRequested;
+        playToggleRequested = false;
+        return requested;
+    }
+
+    void EditorUI::drawToolbar(SGE::CORE::EngineMode mode) {
+        const bool isPlaying = (mode == SGE::CORE::EngineMode::Play);
+
+        ImGui::Begin("Toolbar", nullptr, ImGuiWindowFlags_NoCollapse);
+        if (isPlaying) {
+            if (ImGui::Button("Stop")) {
+                playToggleRequested = true;
+            }
+            ImGui::SameLine();
+            ImGui::TextColored(ImVec4(0.9f, 0.3f, 0.3f, 1.0f), "PLAY MODE");
+        } else {
+            if (ImGui::Button("Play")) {
+                playToggleRequested = true;
+            }
+            ImGui::SameLine();
+            ImGui::TextDisabled("Inspection Mode");
+        }
+        ImGui::End();
     }
 
     void EditorUI::drawEntityList(entt::registry& registry) {

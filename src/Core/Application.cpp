@@ -15,6 +15,7 @@
 #include <GLFW/glfw3.h>
 #include <chrono>
 #include <iostream>
+#include <unordered_set>
 
 namespace SGE::CORE {
 
@@ -22,6 +23,58 @@ namespace SGE::CORE {
         void errorCallback(int error, const char* description) {
             (void)error;
             std::cerr << "Error: " << description << std::endl;
+        }
+
+        template<typename Component>
+        void copyComponent(entt::registry& src, entt::registry& dst) {
+            auto view = src.view<Component>();
+            for (auto entity : view) {
+                dst.emplace_or_replace<Component>(entity, view.template get<Component>(entity));
+            }
+        }
+
+        // entt::registry has no copy constructor (only move), so entering/exiting
+        // Play mode needs an explicit deep copy of every entity and known
+        // component type to snapshot/restore the pre-Play scene.
+        entt::registry cloneRegistry(entt::registry& src) {
+            entt::registry dst;
+
+            std::unordered_set<entt::entity> entities;
+            auto collect = [&entities](auto view) {
+                for (auto entity : view) {
+                    entities.insert(entity);
+                }
+            };
+            collect(src.view<ECS::TransformComponent>());
+            collect(src.view<ECS::MeshComponent>());
+            collect(src.view<ECS::MaterialComponent>());
+            collect(src.view<ECS::RigidBodyComponent>());
+            collect(src.view<ECS::SphereColliderComponent>());
+            collect(src.view<ECS::LightComponent>());
+            collect(src.view<ECS::CameraComponent>());
+            collect(src.view<ECS::ThirdPersonFollowComponent>());
+            collect(src.view<ECS::PlayerControllerComponent>());
+            collect(src.view<ECS::TagComponent>());
+
+            // create() with a hint reuses that exact identifier on an empty
+            // registry, so entity references between components (e.g. the
+            // third-person camera's follow target) stay valid after the copy.
+            for (auto entity : entities) {
+                (void)dst.create(entity);
+            }
+
+            copyComponent<ECS::TransformComponent>(src, dst);
+            copyComponent<ECS::MeshComponent>(src, dst);
+            copyComponent<ECS::MaterialComponent>(src, dst);
+            copyComponent<ECS::RigidBodyComponent>(src, dst);
+            copyComponent<ECS::SphereColliderComponent>(src, dst);
+            copyComponent<ECS::LightComponent>(src, dst);
+            copyComponent<ECS::CameraComponent>(src, dst);
+            copyComponent<ECS::ThirdPersonFollowComponent>(src, dst);
+            copyComponent<ECS::PlayerControllerComponent>(src, dst);
+            copyComponent<ECS::TagComponent>(src, dst);
+
+            return dst;
         }
     }
 
@@ -77,12 +130,13 @@ namespace SGE::CORE {
         // position, then the camera follows and the frame is rendered - each
         // stage sees the previous stage's finished result, not last frame's.
         // The skybox is drawn last so it only fills in pixels nothing else drew.
-        systems.push_back(std::make_unique<SGE::SYSTEMS::InputSystem>(inputHandler));
-        systems.push_back(std::make_unique<SGE::SYSTEMS::PhysicsSystem>());
-        systems.push_back(std::make_unique<SGE::SYSTEMS::CollisionSystem>(eventSystem));
-        systems.push_back(std::make_unique<SGE::SYSTEMS::CameraSystem>(window));
-        systems.push_back(std::make_unique<SGE::SYSTEMS::RenderSystem>(shader, environment));
-        systems.push_back(std::make_unique<SGE::SYSTEMS::SkyboxSystem>(environment, skyboxShader));
+        simulationSystems.push_back(std::make_unique<SGE::SYSTEMS::InputSystem>(inputHandler));
+        simulationSystems.push_back(std::make_unique<SGE::SYSTEMS::PhysicsSystem>());
+        simulationSystems.push_back(std::make_unique<SGE::SYSTEMS::CollisionSystem>(eventSystem));
+
+        presentationSystems.push_back(std::make_unique<SGE::SYSTEMS::CameraSystem>(window));
+        presentationSystems.push_back(std::make_unique<SGE::SYSTEMS::RenderSystem>(shader, environment));
+        presentationSystems.push_back(std::make_unique<SGE::SYSTEMS::SkyboxSystem>(environment, skyboxShader));
 
         editorUI = std::make_unique<SGE::EDITOR::EditorUI>(window.getMWindow());
 
@@ -124,6 +178,7 @@ namespace SGE::CORE {
         auto cameraEntity = registry.create();
         registry.emplace<ECS::TagComponent>(cameraEntity, "MainCamera");
         registry.emplace<ECS::CameraComponent>(cameraEntity);
+        // registry.emplace<ECS::FreeCameraComponent>(cameraEntity);
         auto& follow = registry.emplace<ECS::ThirdPersonFollowComponent>(cameraEntity);
         follow.target = player;
         follow.offset = glm::vec3(10.0f, 2.0f, 0.0f);
@@ -164,16 +219,42 @@ namespace SGE::CORE {
 
             window.clear();
 
-            for (auto& system : systems) {
+            if (mode == EngineMode::Play) {
+                for (auto& system : simulationSystems) {
+                    system->update(registry, deltaTime);
+                }
+            }
+            for (auto& system : presentationSystems) {
                 system->update(registry, deltaTime);
             }
 
             editorUI->beginFrame();
-            editorUI->draw(registry);
+            editorUI->draw(registry, mode);
+            if (editorUI->consumePlayToggleRequest()) {
+                togglePlayMode();
+            }
             editorUI->endFrame();
 
             window.update();
         }
+    }
+
+    void Application::togglePlayMode() {
+        if (mode == EngineMode::Inspection) {
+            enterPlayMode();
+        } else {
+            exitPlayMode();
+        }
+    }
+
+    void Application::enterPlayMode() {
+        prePlaySnapshot = cloneRegistry(registry);
+        mode = EngineMode::Play;
+    }
+
+    void Application::exitPlayMode() {
+        registry = std::move(prePlaySnapshot);
+        mode = EngineMode::Inspection;
     }
 
     void Application::cleanup() {
