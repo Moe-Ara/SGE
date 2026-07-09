@@ -91,6 +91,19 @@ namespace SGE::ECS {
         double lastMouseX{0.0};
         double lastMouseY{0.0};
         bool initialized{false};
+        bool enabled{true};
+    };
+
+    struct FreeCameraComponent {
+        float movementSpeed{5.0f};
+        float sprintMultiplier{2.0f};
+        float mouseSensitivity{0.1f};
+        float yaw{-90.0f};
+        float pitch{0.0f};
+        double lastMouseX{0.0};
+        double lastMouseY{0.0};
+        bool initialized{false};
+        bool enabled{true};
     };
 
     struct PlayerControllerComponent {

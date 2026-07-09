@@ -22,10 +22,13 @@ main() -> Application::run()
              +-- EventSystem                (pub/sub, e.g. collision events)
              +-- Environment                 (baked once at startup — see section 5b)
              +-- vector<unique_ptr<ISystem>>   (run in this order — see note below)
-             |     InputSystem    -> reads keys, sets velocity/translation on PlayerController entities
+             |     InputSystem    -> input stage; InputHandler owns GLFW key/mouse state
+             |     PlayerControllerSystem -> maps player input to velocity/translation
+             |     FreeCameraControllerSystem -> moves FreeCameraComponent cameras
+             |     ThirdPersonCameraControllerSystem -> moves follow cameras around targets
              |     PhysicsSystem  -> gravity + velocity/position integration
              |     CollisionSystem-> BVH broad-phase + sphere narrow-phase, resolves overlaps, publishes events
-             |     CameraSystem   -> orbits the third-person camera around its (now fully-updated) target
+             |     CameraRenderSystem -> syncs CameraComponent view/projection from TransformComponent
              |     RenderSystem   -> draws every entity with Transform+Mesh via the PBR shader + IBL ambient
              |     SkyboxSystem   -> draws the baked sky cubemap into whatever pixels are still empty
              +-- EditorUI                   (Dear ImGui: entity list + component inspector)
@@ -105,9 +108,10 @@ to add a new component or system file.
 | `RigidBodyComponent` | `velocity, acceleration, force, mass, restitution, isStatic, enabled` | PhysicsSystem |
 | `SphereColliderComponent` | `radius` | CollisionSystem |
 | `LightComponent` | wraps `::PointLight` (`Utils/Light.h`) | RenderSystem |
-| `CameraComponent` | `GRAPHICS::Camera camera; bool isPrimary` | CameraSystem, InputSystem, RenderSystem |
-| `ThirdPersonFollowComponent` | `target (entt::entity), offset, yaw, pitch, ...` | CameraSystem |
-| `PlayerControllerComponent` | `movementSpeed, jumpSpeed` | InputSystem |
+| `CameraComponent` | `GRAPHICS::Camera camera; bool isPrimary` | CameraRenderSystem, controller systems, RenderSystem |
+| `ThirdPersonFollowComponent` | `target (entt::entity), offset, yaw, pitch, ...` | ThirdPersonCameraControllerSystem |
+| `FreeCameraComponent` | `movementSpeed, sprintMultiplier, mouseSensitivity, yaw, pitch, ...` | FreeCameraControllerSystem |
+| `PlayerControllerComponent` | `movementSpeed, jumpSpeed` | PlayerControllerSystem |
 | `TagComponent` | `name` (display name) | EditorUI |
 
 Components are intentionally dumb structs — if you find yourself adding a method with
@@ -117,28 +121,37 @@ real logic to one, that logic almost always belongs in a system instead.
 
 All systems implement `ECS::ISystem::update(entt::registry&, float deltaTime)` and are
 run in this fixed order by `Application::setup()`/`gameLoop()`. **The order is load-bearing**,
-not arbitrary: each stage must see the previous stage's finished result for that frame,
-not last frame's — the original ordering had `CameraSystem` running before `PhysicsSystem`,
-which made the follow camera read the player's pre-gravity position every frame (a
-permanent one-step camera lag, very visible since gravity is always active). Keep input
-before physics before collision before camera before render if you reorder anything.
+not arbitrary: controller systems write ECS state, simulation systems settle it, and
+render-prep systems consume the finished data for the frame.
 
-1. **InputSystem** — reads `InputHandler` key state, finds the primary camera (via
-   `ECS::findPrimaryCamera`, `src/ECS/Queries.h` — the single source of truth so
-   `RenderSystem` can't pick a different "primary" camera than this system does) to get
-   a forward/right basis. For a `TransformComponent+PlayerControllerComponent` entity
-   that also has a `RigidBodyComponent`, input sets **desired velocity**
+1. **InputSystem** — the input stage. GLFW callbacks update `InputHandler`; gameplay
+   systems consume that input through injected `InputHandler` references.
+2. **PlayerControllerSystem** — reads `InputHandler` key state, finds the primary camera
+   (via `ECS::findPrimaryCamera`, `src/ECS/Queries.h` — the single source of truth so
+   `RenderSystem` can't pick a different "primary" camera than controller systems do)
+   to get a forward/right basis. For a `TransformComponent+PlayerControllerComponent`
+   entity that also has a `RigidBodyComponent`, input sets **desired velocity**
    (`RigidBodyComponent::velocity.x/z` from WASD, `.y` from Space/Shift) rather than
    writing position directly — `PhysicsSystem` is the only thing that ever integrates
    velocity into `TransformComponent::translation`, so the two systems can't fight over
    the same field. Entities with a `PlayerControllerComponent` but no `RigidBodyComponent`
    (e.g. a free-flying debug camera rig) still get direct `translateBy` movement.
-2. **PhysicsSystem** — for every `TransformComponent+RigidBodyComponent` that isn't
+3. **FreeCameraControllerSystem** — operates only on entities with
+   `CameraComponent+TransformComponent+FreeCameraComponent`. It reads keyboard/mouse
+   input, updates `FreeCameraComponent` yaw/pitch/history state, and writes
+   `TransformComponent` translation/rotation. It never touches projection matrices or
+   rendering.
+4. **ThirdPersonCameraControllerSystem** — operates only on entities with
+   `CameraComponent+TransformComponent+ThirdPersonFollowComponent`. It reads optional
+   right-mouse orbit input, updates follow yaw/pitch/history state, and writes the
+   camera entity's `TransformComponent` around its target. It never writes directly to
+   `GRAPHICS::Camera`.
+5. **PhysicsSystem** — for every `TransformComponent+RigidBodyComponent` that isn't
    static/disabled: apply gravity, `force -> acceleration -> velocity -> position`,
    clear forces. This is the single integration path; there is no other place velocity
    gets modified, which is what fixes the old bug where gravity was added to a force
    accumulator that nothing ever drained.
-3. **CollisionSystem** — every frame, gathers all
+6. **CollisionSystem** — every frame, gathers all
    `TransformComponent+SphereColliderComponent` entities into a flat list, rebuilds a
    `PHYSICS::BVH` from scratch (`BVH::build`), and asks it for overlapping pairs
    (`BVHNode::getCollisions` does a same-leaf pairwise check *and* a dual-tree
@@ -154,32 +167,35 @@ before physics before collision before camera before render if you reorder anyth
    `insert`/`remove` paths that could silently drop or stale entities; for a scene of
    this size, a full rebuild is simpler and correct by construction. If you have
    thousands of colliders, this is the first thing to revisit (see gap list).
-4. **CameraSystem** — takes a `GRAPHICS::Window&` injected at construction (not a
+7. **CameraRenderSystem** — takes a `GRAPHICS::Window&` injected at construction (not a
    `Window::getInstance()` singleton lookup inside `update()`, precisely so it can't run
    before the singleton has been constructed with real dimensions by
    `Application::setup()`). Each frame it recomputes every `CameraComponent`'s
    perspective projection from the *current* `window.getWidth()/getHeight()` aspect
-   ratio (so resizing the window doesn't stretch the image), then orbits
-   `CameraComponent+ThirdPersonFollowComponent` entities around their `target`.
-   Mouse-look only engages while the **right mouse button is held** (cursor is captured
-   with `GLFW_CURSOR_DISABLED` during the drag, released otherwise) — this is deliberate
-   so the mouse stays free for clicking on ImGui panels the rest of the time.
-5. **RenderSystem** — finds the primary camera (same `ECS::findPrimaryCamera` helper)
+   ratio (so resizing the window doesn't stretch the image), then syncs every
+   `CameraComponent+TransformComponent` entity's `GRAPHICS::Camera` view from its
+   transform. It does not read input and contains no controller-specific logic.
+8. **RenderSystem** — finds the primary camera (same `ECS::findPrimaryCamera` helper)
    and up to 4 lights, sets `view`/`projection`/`viewPos`/`lights[i].*`/`numLights`
    once, binds the injected `Environment`'s irradiance/prefilter/BRDF-LUT textures to
    texture units 1/2/3 (unit 0 is reserved for each entity's own `albedoMap`), then for
    every `TransformComponent+MeshComponent` sets `transform`/`normalMatrix` and the PBR
    material uniforms (falling back to a default white/dielectric material if the entity
    has no `MaterialComponent`) and draws.
-6. **SkyboxSystem** — runs last. Finds the primary camera, draws the `Environment`'s raw
+9. **SkyboxSystem** — runs last. Finds the primary camera, draws the `Environment`'s raw
    captured sky cubemap as the background using a view matrix with translation stripped
    (`skybox.vert`'s `mat4(mat3(view))`) and a vertex trick that forces the sky's depth to
    the far plane (`clipPos.xyww`) with `glDepthFunc(GL_LEQUAL)`, so it only fills in
    pixels nothing else drew this frame — no overdraw of already-shaded geometry.
 
-To add a system: implement `ISystem`, construct it in `Application::setup()`, push it
-into `systems` in the position you want it evaluated. That's the entire integration
-surface — nothing else needs to know about it.
+To add a new camera type, add a pure data component such as `OrbitCameraComponent`,
+add a matching `OrbitCameraControllerSystem` that writes `TransformComponent`, and
+register that system before `CameraRenderSystem`. Existing camera controllers and
+`CameraRenderSystem` do not need to change.
+
+To add any other system: implement `ISystem`, construct it in `Application::setup()`,
+push it into the vector in the position you want it evaluated. That's the entire
+integration surface — nothing else needs to know about it.
 
 ## 5. Rendering & shaders
 

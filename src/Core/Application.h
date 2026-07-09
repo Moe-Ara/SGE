@@ -27,6 +27,7 @@ namespace SGE::CORE {
         void togglePlayMode();
         void enterPlayMode();
         void exitPlayMode();
+        void updateCameraControllerModes(bool playMode);
 
         entt::registry registry;
         std::shared_ptr<SGE::INPUT::InputHandler> inputHandler;

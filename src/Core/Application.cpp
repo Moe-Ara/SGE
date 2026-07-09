@@ -2,7 +2,10 @@
 #include "../Graphics/Window.h"
 #include "../ECS/Components.h"
 #include "../Systems/InputSystem.h"
-#include "../Systems/CameraSystem.h"
+#include "../Systems/PlayerControllerSystem.h"
+#include "../Systems/FreeCameraControllerSystem.h"
+#include "../Systems/ThirdPersonCameraControllerSystem.h"
+#include "../Systems/CameraRenderSystem.h"
 #include "../Systems/PhysicsSystem.h"
 #include "../Systems/CollisionSystem.h"
 #include "../Systems/RenderSystem.h"
@@ -11,6 +14,7 @@
 #include "../Graphics/Texture.h"
 #include "../Graphics/Environment.h"
 #include "../Utils/ModelLoader.h"
+#include "../Utils/CameraMath.h"
 #include "../Events/CollisionEvent.h"
 #include <GLFW/glfw3.h>
 #include <chrono>
@@ -37,7 +41,7 @@ namespace SGE::CORE {
         // Play mode needs an explicit deep copy of every entity and known
         // component type to snapshot/restore the pre-Play scene.
         entt::registry cloneRegistry(entt::registry& src) {
-            entt::registry dst;
+        entt::registry dst;
 
             std::unordered_set<entt::entity> entities;
             auto collect = [&entities](auto view) {
@@ -52,6 +56,7 @@ namespace SGE::CORE {
             collect(src.view<ECS::SphereColliderComponent>());
             collect(src.view<ECS::LightComponent>());
             collect(src.view<ECS::CameraComponent>());
+            collect(src.view<ECS::FreeCameraComponent>());
             collect(src.view<ECS::ThirdPersonFollowComponent>());
             collect(src.view<ECS::PlayerControllerComponent>());
             collect(src.view<ECS::TagComponent>());
@@ -70,11 +75,26 @@ namespace SGE::CORE {
             copyComponent<ECS::SphereColliderComponent>(src, dst);
             copyComponent<ECS::LightComponent>(src, dst);
             copyComponent<ECS::CameraComponent>(src, dst);
+            copyComponent<ECS::FreeCameraComponent>(src, dst);
             copyComponent<ECS::ThirdPersonFollowComponent>(src, dst);
             copyComponent<ECS::PlayerControllerComponent>(src, dst);
             copyComponent<ECS::TagComponent>(src, dst);
 
             return dst;
+        }
+
+        void setCameraControllerModes(entt::registry& registry, bool playMode) {
+            auto freeView = registry.view<ECS::FreeCameraComponent>();
+            for (auto entity : freeView) {
+                auto& freeCam = freeView.get<ECS::FreeCameraComponent>(entity);
+                freeCam.enabled = !playMode;
+            }
+
+            auto followView = registry.view<ECS::ThirdPersonFollowComponent>();
+            for (auto entity : followView) {
+                auto& follow = followView.get<ECS::ThirdPersonFollowComponent>(entity);
+                follow.enabled = playMode;
+            }
         }
     }
 
@@ -125,16 +145,17 @@ namespace SGE::CORE {
         auto environment = std::make_shared<SGE::GRAPHICS::Environment>();
         glViewport(0, 0, window.getWidth(), window.getHeight());
 
-        // Order matters: input sets desired velocity/movement, physics integrates
-        // it into position, collision resolves overlaps against the final
-        // position, then the camera follows and the frame is rendered - each
-        // stage sees the previous stage's finished result, not last frame's.
-        // The skybox is drawn last so it only fills in pixels nothing else drew.
+        // Order matters: controller systems modify ECS data, physics/collision
+        // settle simulation state, then CameraRenderSystem prepares cameras from
+        // transforms before the frame is rendered.
         simulationSystems.push_back(std::make_unique<SGE::SYSTEMS::InputSystem>(inputHandler));
+        simulationSystems.push_back(std::make_unique<SGE::SYSTEMS::PlayerControllerSystem>(inputHandler));
+        simulationSystems.push_back(std::make_unique<SGE::SYSTEMS::ThirdPersonCameraControllerSystem>(window, inputHandler));
         simulationSystems.push_back(std::make_unique<SGE::SYSTEMS::PhysicsSystem>());
         simulationSystems.push_back(std::make_unique<SGE::SYSTEMS::CollisionSystem>(eventSystem));
 
-        presentationSystems.push_back(std::make_unique<SGE::SYSTEMS::CameraSystem>(window));
+        presentationSystems.push_back(std::make_unique<SGE::SYSTEMS::FreeCameraControllerSystem>(window, inputHandler));
+        presentationSystems.push_back(std::make_unique<SGE::SYSTEMS::CameraRenderSystem>(window));
         presentationSystems.push_back(std::make_unique<SGE::SYSTEMS::RenderSystem>(shader, environment));
         presentationSystems.push_back(std::make_unique<SGE::SYSTEMS::SkyboxSystem>(environment, skyboxShader));
 
@@ -177,11 +198,16 @@ namespace SGE::CORE {
         // Camera: third-person follow of the player.
         auto cameraEntity = registry.create();
         registry.emplace<ECS::TagComponent>(cameraEntity, "MainCamera");
+        auto& cameraTransform = registry.emplace<ECS::TransformComponent>(cameraEntity);
+        cameraTransform.translation = glm::vec3(0.0f, 0.0f, 10.0f);
+        cameraTransform.rotation = SGE::UTILS::lookRotation(-cameraTransform.translation);
         registry.emplace<ECS::CameraComponent>(cameraEntity);
-        // registry.emplace<ECS::FreeCameraComponent>(cameraEntity);
+        registry.emplace<ECS::FreeCameraComponent>(cameraEntity);
         auto& follow = registry.emplace<ECS::ThirdPersonFollowComponent>(cameraEntity);
         follow.target = player;
         follow.offset = glm::vec3(10.0f, 2.0f, 0.0f);
+        follow.enabled = false;
+        updateCameraControllerModes(false);
 
         // Light
         auto lightEntity = registry.create();
@@ -249,12 +275,18 @@ namespace SGE::CORE {
 
     void Application::enterPlayMode() {
         prePlaySnapshot = cloneRegistry(registry);
+        updateCameraControllerModes(true);
         mode = EngineMode::Play;
     }
 
     void Application::exitPlayMode() {
         registry = std::move(prePlaySnapshot);
+        updateCameraControllerModes(false);
         mode = EngineMode::Inspection;
+    }
+
+    void Application::updateCameraControllerModes(bool playMode) {
+        setCameraControllerModes(registry, playMode);
     }
 
     void Application::cleanup() {
