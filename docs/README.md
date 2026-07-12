@@ -124,3 +124,23 @@ Under WSLg, SGE prefers X11/XWayland because GLFW Wayland can create a valid EGL
 context without mapping a visible window in some remote IDE sessions. Set
 `SGE_GLFW_PLATFORM=wayland` to override that default.
 
+# Lua Scripting
+
+Lua 5.4 is embedded and built with the engine. Add a `ScriptComponent` whose asset ID is
+relative to `resources`, for example `scripts/example.lua`. Scripts run during Play mode
+and may define either lifecycle callback:
+
+```lua
+function start()
+    sge.log("started", entity.id)
+end
+
+function update(dt)
+    entity:translate(0, dt, 0)
+end
+```
+
+The initial API provides `entity.id`, `entity:get_position()`,
+`entity:set_position(x, y, z)`, `entity:translate(x, y, z)`, and `sge.log(...)`.
+Each entity has an isolated Lua state. Script failures are reported once and disable that
+script instance until the world is reset.

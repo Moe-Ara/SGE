@@ -6,6 +6,7 @@
 #include "../Systems/InputSystem.h"
 #include "../Systems/PlayerControllerSystem.h"
 #include "../Systems/FreeCameraControllerSystem.h"
+#include "../Systems/LuaScriptSystem.h"
 #include "../Systems/ThirdPersonCameraControllerSystem.h"
 #include "../Systems/CameraRenderSystem.h"
 #include "../Systems/PhysicsSystem.h"
@@ -113,6 +114,7 @@ namespace SGE::CORE {
         simulationSystems.emplace<SGE::SYSTEMS::InputSystem>(inputHandler);
         simulationSystems.emplace<SGE::SYSTEMS::PlayerControllerSystem>(inputHandler);
         simulationSystems.emplace<SGE::SYSTEMS::ThirdPersonCameraControllerSystem>(window, inputHandler);
+        simulationSystems.emplace<SGE::SYSTEMS::LuaScriptSystem>();
         simulationSystems.emplace<SGE::SYSTEMS::PhysicsSystem>();
         simulationSystems.emplace<SGE::SYSTEMS::CollisionSystem>(eventSystem);
 
@@ -162,6 +164,7 @@ namespace SGE::CORE {
         npcMaterial.metallic = 0.0f;
         npcMaterial.roughness = 0.6f;
         registry.emplace<ECS::SphereColliderComponent>(npc);
+        registry.emplace<ECS::ScriptComponent>(npc, "scripts/example.lua", true);
 
         // Camera: third-person follow of the player.
         auto cameraEntity = registry.create();

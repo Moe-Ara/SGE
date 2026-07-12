@@ -57,6 +57,7 @@ namespace SGE::ECS {
                    id == entt::type_hash<FreeCameraComponent>::value() ||
                    id == entt::type_hash<ThirdPersonFollowComponent>::value() ||
                    id == entt::type_hash<PlayerControllerComponent>::value() ||
+                   id == entt::type_hash<ScriptComponent>::value() ||
                    id == entt::type_hash<TagComponent>::value();
         }
 
@@ -105,7 +106,8 @@ namespace SGE::ECS {
         void rejectUnknownComponents(const json& components) {
             static const std::unordered_set<std::string> known{
                 "Tag", "Transform", "Mesh", "Material", "RigidBody", "SphereCollider",
-                "Light", "Camera", "FreeCamera", "ThirdPersonFollow", "PlayerController"
+                "Light", "Camera", "FreeCamera", "ThirdPersonFollow", "PlayerController",
+                "Script"
             };
             for (const auto& [name, value] : components.items()) {
                 (void)value;
@@ -223,6 +225,11 @@ namespace SGE::ECS {
                 components["PlayerController"] = {
                     {"movementSpeed", value->movementSpeed}, {"jumpSpeed", value->jumpSpeed},
                     {"grounded", value->grounded}
+                };
+            }
+            if (const auto* value = registry.try_get<ScriptComponent>(entity)) {
+                components["Script"] = {
+                    {"asset", value->assetId}, {"enabled", value->enabled}
                 };
             }
 
@@ -380,6 +387,11 @@ namespace SGE::ECS {
                     value.movementSpeed = found->at("movementSpeed").get<float>();
                     value.jumpSpeed = found->at("jumpSpeed").get<float>();
                     value.grounded = found->at("grounded").get<bool>();
+                }
+                if (const auto found = components.find("Script"); found != components.end()) {
+                    auto& value = registry.emplace<ScriptComponent>(entity);
+                    value.assetId = found->at("asset").get<std::string>();
+                    value.enabled = found->value("enabled", true);
                 }
             }
 

@@ -18,6 +18,16 @@ project(SGE VERSION 0.1.0 LANGUAGES CXX C)
 
 include(CTest)
 
+# Lua 5.4 is vendored from the official source distribution.
+file(GLOB LUA_SRC CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/external/lua/*.c")
+list(FILTER LUA_SRC EXCLUDE REGEX "/(lua|luac)\\.c$")
+add_library(lua STATIC ${LUA_SRC})
+target_include_directories(lua PUBLIC "${CMAKE_SOURCE_DIR}/external/lua")
+if(UNIX AND NOT APPLE)
+  target_compile_definitions(lua PRIVATE LUA_USE_LINUX)
+  target_link_libraries(lua PUBLIC ${CMAKE_DL_LIBS} m)
+endif()
+
 # Defaults and policy
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
@@ -174,6 +184,7 @@ endif()
 
 find_package(Threads REQUIRED)
 target_link_libraries(SGE PRIVATE Threads::Threads)
+target_link_libraries(SGE PRIVATE lua)
 
 # Link GLFW (target or library)
 if(TARGET ${_GLFW_TARGET})
@@ -216,6 +227,7 @@ if(BUILD_TESTING)
     "${CMAKE_SOURCE_DIR}/src/Systems/CollisionSystem.cpp"
     "${CMAKE_SOURCE_DIR}/src/Core/AssetLocator.cpp"
     "${CMAKE_SOURCE_DIR}/src/ECS/SceneSerializer.cpp"
+    "${CMAKE_SOURCE_DIR}/src/Systems/LuaScriptSystem.cpp"
   )
   target_include_directories(SGE_tests PRIVATE
     "${CMAKE_SOURCE_DIR}"
@@ -225,6 +237,7 @@ if(BUILD_TESTING)
   if(_GLM_TARGET)
     target_link_libraries(SGE_tests PRIVATE ${_GLM_TARGET})
   endif()
+  target_link_libraries(SGE_tests PRIVATE lua)
   if(MSVC)
     target_compile_options(SGE_tests PRIVATE /W4 /permissive-)
   else()

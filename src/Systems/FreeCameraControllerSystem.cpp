@@ -56,8 +56,9 @@ namespace SGE::SYSTEMS {
                     freeCam.initialized = true;
                 }
 
-                const double deltaX = mouseX - freeCam.lastMouseX;
-                const double deltaY = freeCam.lastMouseY - mouseY;
+                // Ignore extreme jumps caused by focus/cursor-mode transitions.
+                const double deltaX = glm::clamp(mouseX - freeCam.lastMouseX, -100.0, 100.0);
+                const double deltaY = glm::clamp(freeCam.lastMouseY - mouseY, -100.0, 100.0);
 
                 freeCam.yaw += static_cast<float>(deltaX) * freeCam.mouseSensitivity;
                 freeCam.pitch = UTILS::clampPitch(
@@ -75,6 +76,12 @@ namespace SGE::SYSTEMS {
                 freeCam.smoothedYaw = freeCam.yaw;
                 freeCam.smoothedPitch = freeCam.pitch;
                 freeCam.rotationInitialized = true;
+            }
+
+            // Damping should smooth active mouse-look, not add inertia after RMB release.
+            if (!rotating) {
+                freeCam.smoothedYaw = freeCam.yaw;
+                freeCam.smoothedPitch = freeCam.pitch;
             }
 
             const float safeDeltaTime = std::max(deltaTime, 0.0f);
