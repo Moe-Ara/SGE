@@ -107,8 +107,8 @@ namespace SGE::ECS {
     struct FreeCameraComponent {
         float movementSpeed{5.0f};
         float sprintMultiplier{2.0f};
-        float mouseSensitivity{0.1f};
-        float rotationResponsiveness{18.0f};
+        float mouseSensitivity{0.04f};
+        float rotationResponsiveness{28.0f};
         float yaw{-90.0f};
         float pitch{0.0f};
         float smoothedYaw{-90.0f};
@@ -125,6 +125,11 @@ namespace SGE::ECS {
         float movementSpeed{5.0f};
         float jumpSpeed{10.0f};
         bool grounded{false};
+    };
+
+    struct ScriptComponent {
+        std::string assetId;
+        bool enabled{true};
     };
 
     struct TagComponent {

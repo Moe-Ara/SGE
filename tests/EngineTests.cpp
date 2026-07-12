@@ -8,6 +8,7 @@
 #include "src/Events/EventSystem.h"
 #include "src/Events/CollisionEvent.h"
 #include "src/Systems/CollisionSystem.h"
+#include "src/Systems/LuaScriptSystem.h"
 #include "src/Core/AssetLocator.h"
 #include "src/ECS/SceneSerializer.h"
 #include <filesystem>
@@ -275,6 +276,31 @@ namespace {
         std::filesystem::remove_all(root);
     }
 
+    void testLuaScriptLifecycleMutatesTransform() {
+        const auto root = std::filesystem::temp_directory_path() / "sge_lua_test";
+        std::filesystem::remove_all(root);
+        std::filesystem::create_directories(root / "scripts");
+        {
+            std::ofstream script(root / "scripts" / "motion.lua");
+            script << "function start() entity:set_position(1, 2, 3) end\n"
+                      "function update(dt) entity:translate(dt, 0, 0) end\n";
+        }
+
+        SGE::CORE::AssetLocator::initializeFromRoot(root);
+        entt::registry registry;
+        const auto entity = registry.create();
+        registry.emplace<SGE::ECS::TransformComponent>(entity);
+        registry.emplace<SGE::ECS::ScriptComponent>(entity, "scripts/motion.lua", true);
+
+        SGE::SYSTEMS::LuaScriptSystem scripts;
+        scripts.update(registry, 0.5f);
+        const auto& position =
+            registry.get<SGE::ECS::TransformComponent>(entity).translation;
+        expect(glm::length(position - glm::vec3{1.5f, 2.0f, 3.0f}) < 0.0001f,
+               "Lua start and update callbacks must mutate the owning transform");
+        std::filesystem::remove_all(root);
+    }
+
     entt::entity findSceneEntity(entt::registry& registry, std::uint64_t id) {
         for (const auto entity : registry.view<SGE::ECS::SceneIdentityComponent>()) {
             if (registry.get<SGE::ECS::SceneIdentityComponent>(entity).id == id) {
@@ -315,6 +341,7 @@ namespace {
         light.color = {0.9f, 0.8f, 0.7f};
         light.intensity = 42.0f;
         source.emplace<PlayerControllerComponent>(target, 6.0f, 9.0f, true);
+        source.emplace<ScriptComponent>(target, "scripts/test.lua", true);
 
         const entt::entity cameraEntity = source.create();
         source.emplace<SceneIdentityComponent>(cameraEntity, 202u);
@@ -336,6 +363,9 @@ namespace {
         expect(clone.get<TagComponent>(clonedTarget).name == "Target" &&
                    clone.get<TransformComponent>(clonedTarget).translation == glm::vec3(3.0f, 4.0f, 5.0f),
                "scene round-trip must preserve tag and transform data");
+        expect(clone.get<ScriptComponent>(clonedTarget).assetId == "scripts/test.lua" &&
+                   clone.get<ScriptComponent>(clonedTarget).enabled,
+               "scene round-trip must preserve Lua script configuration");
         expect(clone.get<MeshComponent>(clonedTarget).model == model &&
                    clone.get<MaterialComponent>(clonedTarget).albedoTexture == texture,
                "runtime scene clone must resolve model and texture asset IDs");
@@ -402,6 +432,7 @@ int main() {
     testBVHNodePoolStopsGrowingForStableWorkload();
     testCollisionContactLifecycle();
     testAssetLocatorUsesConfiguredRoot();
+    testLuaScriptLifecycleMutatesTransform();
     testFullSceneSerializationRoundTrip();
     testSceneSerializerRejectsInvalidDocuments();
 

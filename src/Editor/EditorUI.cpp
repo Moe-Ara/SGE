@@ -196,6 +196,13 @@ namespace SGE::EDITOR {
                 ImGui::DragFloat("Radius", &collider->radius, 0.05f, 0.01f, 100.0f);
             }
         }
+
+        if (auto* script = registry.try_get<ECS::ScriptComponent>(selected)) {
+            if (ImGui::CollapsingHeader("Lua Script", ImGuiTreeNodeFlags_DefaultOpen)) {
+                ImGui::TextWrapped("Asset: %s", script->assetId.c_str());
+                ImGui::Checkbox("Enabled##LuaScript", &script->enabled);
+            }
+        }
     }
 
 } // namespace SGE::EDITOR
