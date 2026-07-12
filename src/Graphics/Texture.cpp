@@ -2,6 +2,7 @@
 #include <stb_image.h>
 #include <iostream>
 #include <vector>
+#include <stdexcept>
 
 namespace SGE::GRAPHICS {
 
@@ -16,8 +17,13 @@ namespace SGE::GRAPHICS {
 
         GLenum format = GL_RGB;
         if (channels == 1) format = GL_RED;
+        else if (channels == 2) format = GL_RG;
         else if (channels == 3) format = GL_RGB;
         else if (channels == 4) format = GL_RGBA;
+        else {
+            stbi_image_free(data);
+            throw std::runtime_error("Unsupported texture channel count for: " + path);
+        }
 
         auto texture = std::shared_ptr<Texture>(new Texture());
         texture->width = width;
@@ -25,8 +31,12 @@ namespace SGE::GRAPHICS {
 
         glGenTextures(1, &texture->id);
         glBindTexture(GL_TEXTURE_2D, texture->id);
+        GLint previousUnpackAlignment = 4;
+        glGetIntegerv(GL_UNPACK_ALIGNMENT, &previousUnpackAlignment);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         glTexImage2D(GL_TEXTURE_2D, 0, static_cast<GLint>(format), width, height, 0, format, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, previousUnpackAlignment);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -40,8 +50,12 @@ namespace SGE::GRAPHICS {
     }
 
     std::shared_ptr<Texture> Texture::createCheckerboard(int size, const glm::vec3& colorA, const glm::vec3& colorB, int tiles) {
+        if (size <= 0) {
+            throw std::invalid_argument("Checkerboard size must be positive");
+        }
+        tiles = glm::clamp(tiles, 1, size);
         std::vector<unsigned char> pixels(static_cast<size_t>(size) * size * 3);
-        const int tileSize = size / std::max(tiles, 1);
+        const int tileSize = std::max(size / tiles, 1);
 
         for (int y = 0; y < size; ++y) {
             for (int x = 0; x < size; ++x) {
@@ -60,8 +74,12 @@ namespace SGE::GRAPHICS {
 
         glGenTextures(1, &texture->id);
         glBindTexture(GL_TEXTURE_2D, texture->id);
+        GLint previousUnpackAlignment = 4;
+        glGetIntegerv(GL_UNPACK_ALIGNMENT, &previousUnpackAlignment);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, size, size, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
         glGenerateMipmap(GL_TEXTURE_2D);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, previousUnpackAlignment);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);

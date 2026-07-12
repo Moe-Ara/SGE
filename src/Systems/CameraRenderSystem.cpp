@@ -19,15 +19,16 @@ namespace SGE::SYSTEMS {
     }
 
     void CameraRenderSystem::updateProjection(entt::registry& registry) const {
-        const float aspect = window.getHeight() > 0
-            ? static_cast<float>(window.getWidth()) / static_cast<float>(window.getHeight())
+        const float aspect = window.getFramebufferHeight() > 0
+            ? static_cast<float>(window.getFramebufferWidth()) /
+                static_cast<float>(window.getFramebufferHeight())
             : 16.0f / 9.0f;
 
         auto view = registry.view<ECS::CameraComponent>();
 
         for (auto entity : view) {
             auto& cam = view.get<ECS::CameraComponent>(entity);
-            cam.camera.setPrespectiveProjection(
+            cam.camera.setPerspectiveProjection(
                 cam.fovYRadians,
                 aspect,
                 cam.nearPlane,
@@ -46,7 +47,7 @@ namespace SGE::SYSTEMS {
             cam.camera.setViewDirection(
                 transform.translation,
                 UTILS::cameraForward(transform.rotation),
-                UTILS::worldUp()
+                UTILS::cameraUp(transform.rotation)
             );
         }
     }

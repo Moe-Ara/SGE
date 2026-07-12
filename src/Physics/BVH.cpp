@@ -14,11 +14,13 @@ namespace SGE::PHYSICS {
                 CollisionInfo info;
                 info.entityA = itemA.entity;
                 info.entityB = itemB.entity;
-                info.contactPoint = (itemA.position + itemB.position) * 0.5f;
                 info.normal = distance > 0.0f
                     ? (itemB.position - itemA.position) / distance
                     : glm::vec3(0.0f, 1.0f, 0.0f);
                 info.penetrationDepth = (itemA.radius + itemB.radius) - distance;
+                const glm::vec3 pointOnA = itemA.position + info.normal * itemA.radius;
+                const glm::vec3 pointOnB = itemB.position - info.normal * itemB.radius;
+                info.contactPoint = (pointOnA + pointOnB) * 0.5f;
                 collisions.push_back(info);
             }
         }
@@ -72,60 +74,65 @@ namespace SGE::PHYSICS {
     // BVHNode Implementation
     BVHNode::BVHNode() : isLeaf(false) {}
 
-    void BVHNode::build(const std::vector<SpatialItem>& itemsList) {
-        items = itemsList;
-        left.reset();
-        right.reset();
+    void BVHNode::build(std::vector<SpatialItem>& itemsList,
+                        size_t first,
+                        size_t last,
+                        CORE::ObjectPool<BVHNode>& pool) {
+        items = &itemsList;
+        firstItem = first;
+        itemCount = last - first;
+        left = nullptr;
+        right = nullptr;
 
-        if (items.empty()) {
+        if (itemCount == 0u) {
             isLeaf = true;
+            bounds = AABB{};
             return;
         }
 
-        // Calculate bounding box for all items
+        // Bounds must include full sphere extents or cross-node overlaps can be pruned.
         AABB totalBounds;
-        bool first = true;
+        bool firstBound = true;
 
-        for (const auto& item : items) {
-            if (first) {
-                totalBounds.min = item.position;
-                totalBounds.max = item.position;
-                first = false;
+        for (size_t index = first; index < last; ++index) {
+            const auto& item = itemsList[index];
+            const glm::vec3 radius{item.radius};
+            const glm::vec3 itemMin = item.position - radius;
+            const glm::vec3 itemMax = item.position + radius;
+            if (firstBound) {
+                totalBounds.min = itemMin;
+                totalBounds.max = itemMax;
+                firstBound = false;
             } else {
-                totalBounds.min = glm::min(totalBounds.min, item.position);
-                totalBounds.max = glm::max(totalBounds.max, item.position);
+                totalBounds.min = glm::min(totalBounds.min, itemMin);
+                totalBounds.max = glm::max(totalBounds.max, itemMax);
             }
         }
 
         bounds = totalBounds;
-        isLeaf = items.size() <= 4; // Simple leaf threshold
+        isLeaf = itemCount <= 4u;
 
         if (!isLeaf) {
-            // Simple splitting - divide by x-axis for now
-            float split = (totalBounds.min.x + totalBounds.max.x) * 0.5f;
-
-            std::vector<SpatialItem> leftItems, rightItems;
-
-            for (const auto& item : items) {
-                if (item.position.x <= split) {
-                    leftItems.push_back(item);
-                } else {
-                    rightItems.push_back(item);
+            const glm::vec3 extent = totalBounds.max - totalBounds.min;
+            const int axis = extent.y > extent.x
+                ? (extent.z > extent.y ? 2 : 1)
+                : (extent.z > extent.x ? 2 : 0);
+            const size_t middle = first + itemCount / 2u;
+            std::nth_element(
+                itemsList.begin() + static_cast<std::ptrdiff_t>(first),
+                itemsList.begin() + static_cast<std::ptrdiff_t>(middle),
+                itemsList.begin() + static_cast<std::ptrdiff_t>(last),
+                [axis](const SpatialItem& a, const SpatialItem& b) {
+                    return a.position[axis] < b.position[axis];
                 }
-            }
+            );
 
-            // If the split didn't separate anything (e.g. all items share the same
-            // x position), treat this node as a leaf instead of recursing forever.
-            if (leftItems.empty() || rightItems.empty()) {
-                isLeaf = true;
-                return;
-            }
-
-            left = std::make_unique<BVHNode>();
-            left->build(leftItems);
-
-            right = std::make_unique<BVHNode>();
-            right->build(rightItems);
+            BVHNode& leftNode = pool.acquire();
+            BVHNode& rightNode = pool.acquire();
+            left = &leftNode;
+            right = &rightNode;
+            left->build(itemsList, first, middle, pool);
+            right->build(itemsList, middle, last, pool);
         }
     }
 
@@ -135,8 +142,11 @@ namespace SGE::PHYSICS {
         }
 
         if (isLeaf) {
-            for (const auto& item : items) {
-                result.push_back(item);
+            for (const auto& item : getItems()) {
+                const glm::vec3 radius{item.radius};
+                if (AABB{item.position - radius, item.position + radius}.intersects(range)) {
+                    result.push_back(item);
+                }
             }
             return;
         }
@@ -148,9 +158,10 @@ namespace SGE::PHYSICS {
     void BVHNode::getCollisions(std::vector<CollisionInfo>& collisions) const {
         if (isLeaf) {
             // Check pairwise collisions within this leaf
-            for (size_t i = 0; i < items.size(); ++i) {
-                for (size_t j = i + 1; j < items.size(); ++j) {
-                    testPair(items[i], items[j], collisions);
+            const auto leafItems = getItems();
+            for (size_t i = 0; i < leafItems.size(); ++i) {
+                for (size_t j = i + 1; j < leafItems.size(); ++j) {
+                    testPair(leafItems[i], leafItems[j], collisions);
                 }
             }
             return;
@@ -165,14 +176,14 @@ namespace SGE::PHYSICS {
     }
 
     // BVH Implementation
-    BVH::BVH() {
-        root = std::make_unique<BVHNode>();
-    }
+    BVH::BVH() = default;
 
     void BVH::build(const std::vector<SpatialItem>& items) {
         itemCount = items.size();
-        root = std::make_unique<BVHNode>();
-        root->build(items);
+        workingItems.assign(items.begin(), items.end());
+        nodePool.reset();
+        root = &nodePool.acquire();
+        root->build(workingItems, 0u, workingItems.size(), nodePool);
     }
 
     void BVH::query(const AABB& range, std::vector<SpatialItem>& result) const {

@@ -3,8 +3,7 @@
 
 #include <entt/entt.hpp>
 #include <memory>
-#include <vector>
-#include "../ECS/ISystem.h"
+#include "../ECS/SystemPipeline.h"
 #include "../Input/InputHandler.h"
 #include "../Events/EventSystem.h"
 #include "../Editor/EditorUI.h"
@@ -37,8 +36,8 @@ namespace SGE::CORE {
         // Simulation systems (input/physics/collision) only run in Play mode.
         // Presentation systems (camera/render/skybox) run in both modes so the
         // scene stays visible and navigable while inspecting.
-        std::vector<std::unique_ptr<SGE::ECS::ISystem>> simulationSystems;
-        std::vector<std::unique_ptr<SGE::ECS::ISystem>> presentationSystems;
+        SGE::ECS::SystemPipeline simulationSystems;
+        SGE::ECS::SystemPipeline presentationSystems;
         std::unique_ptr<SGE::EDITOR::EditorUI> editorUI;
 
         EngineMode mode{EngineMode::Inspection};

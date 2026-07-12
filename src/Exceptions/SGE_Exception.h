@@ -13,6 +13,7 @@ namespace SGE::EXCEPTIONS {
     class SGE_Exception : public std::runtime_error {
     public:
         explicit SGE_Exception(const char* message);
+        explicit SGE_Exception(const std::string& message);
         const char* what() const noexcept override;
 
     private:

@@ -53,8 +53,11 @@ namespace SGE::SYSTEMS {
                 break;
             }
             const auto& lightComp = lightView.get<ECS::LightComponent>(entity);
+            const glm::vec3 position = registry.all_of<ECS::TransformComponent>(entity)
+                ? registry.get<ECS::TransformComponent>(entity).translation
+                : lightComp.light.position;
             shader->setPBRLight("lights[" + std::to_string(lightCount) + "]",
-                                 lightComp.light.position, lightComp.light.color, lightComp.light.intensity);
+                                 position, lightComp.light.color, lightComp.light.intensity);
             ++lightCount;
         }
         shader->setInt("numLights", lightCount);

@@ -16,6 +16,8 @@ endif()
 
 project(SGE VERSION 0.1.0 LANGUAGES CXX C)
 
+include(CTest)
+
 # Defaults and policy
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
@@ -30,6 +32,7 @@ file(GLOB_RECURSE SGE_SRC CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/src/*.cpp"
     "${CMAKE_SOURCE_DIR}/src/*.c"
 )
+list(FILTER SGE_SRC EXCLUDE REGEX "/src/Events/(EventExample|EventSystemTest)\\.cpp$")
 file(GLOB_RECURSE SGE_HDR CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/src/*.hpp"
     "${CMAKE_SOURCE_DIR}/src/*.h"
@@ -41,6 +44,7 @@ add_executable(SGE
     "${CMAKE_SOURCE_DIR}/external/glad/src/gl.c"
     "${CMAKE_SOURCE_DIR}/external/imgui_backends/imgui_impl_glfw.cpp"
     "${CMAKE_SOURCE_DIR}/external/imgui_backends/imgui_impl_opengl3.cpp"
+    "${CMAKE_SOURCE_DIR}/external/imguizmo/ImGuizmo.cpp"
 )
 
 # Add project root to include path so existing includes like
@@ -117,6 +121,7 @@ endif()
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(IMGUI REQUIRED IMPORTED_TARGET imgui)
 target_include_directories(SGE PRIVATE "${CMAKE_SOURCE_DIR}/external/imgui_backends")
+target_include_directories(SGE PRIVATE "${CMAKE_SOURCE_DIR}/external/imguizmo")
 
 set(_IMGUI_OPENGL3_BACKEND "${CMAKE_SOURCE_DIR}/external/imgui_backends/imgui_impl_opengl3.cpp")
 set_source_files_properties(${_IMGUI_OPENGL3_BACKEND} PROPERTIES
@@ -200,6 +205,34 @@ endif()
 # Enable generation of compile_commands.json for tooling
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 target_compile_definitions(SGE PRIVATE GLM_ENABLE_EXPERIMENTAL)
+
+if(BUILD_TESTING)
+  add_executable(SGE_tests
+    "${CMAKE_SOURCE_DIR}/tests/EngineTests.cpp"
+    "${CMAKE_SOURCE_DIR}/src/Physics/BVH.cpp"
+    "${CMAKE_SOURCE_DIR}/src/Graphics/Camera.cpp"
+    "${CMAKE_SOURCE_DIR}/src/Events/CollisionEvent.cpp"
+    "${CMAKE_SOURCE_DIR}/src/Events/EventSystem.cpp"
+    "${CMAKE_SOURCE_DIR}/src/Systems/CollisionSystem.cpp"
+    "${CMAKE_SOURCE_DIR}/src/Core/AssetLocator.cpp"
+    "${CMAKE_SOURCE_DIR}/src/ECS/SceneSerializer.cpp"
+  )
+  target_include_directories(SGE_tests PRIVATE
+    "${CMAKE_SOURCE_DIR}"
+    "${CMAKE_SOURCE_DIR}/external/entt"
+    "${CMAKE_SOURCE_DIR}/external/glad/include"
+  )
+  if(_GLM_TARGET)
+    target_link_libraries(SGE_tests PRIVATE ${_GLM_TARGET})
+  endif()
+  if(MSVC)
+    target_compile_options(SGE_tests PRIVATE /W4 /permissive-)
+  else()
+    target_compile_options(SGE_tests PRIVATE -Wall -Wextra -Wpedantic)
+  endif()
+  target_compile_definitions(SGE_tests PRIVATE GLM_ENABLE_EXPERIMENTAL)
+  add_test(NAME engine_regressions COMMAND SGE_tests)
+endif()
 
 message(STATUS "Configured SGE (executable target: SGE)")
 message(STATUS "Using vcpkg toolchain: ${CMAKE_TOOLCHAIN_FILE}")

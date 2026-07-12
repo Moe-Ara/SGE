@@ -13,7 +13,7 @@ namespace SGE::GRAPHICS {
         GLuint shader{0};
 
     public:
-        Shader(const char* vertexPath, const char* fragmentPath);
+        Shader(std::string vertexPath, std::string fragmentPath);
         ~Shader();
 
         void use();

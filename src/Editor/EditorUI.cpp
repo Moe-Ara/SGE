@@ -2,12 +2,16 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "ImGuizmo.h"
+#include "GizmoSystem.h"
 #include "../ECS/Components.h"
+#include <algorithm>
 #include <string>
 
 namespace SGE::EDITOR {
 
-    EditorUI::EditorUI(GLFWwindow* window, const char* glslVersion) {
+    EditorUI::EditorUI(GLFWwindow* window, const char* glslVersion)
+        : gizmoSystem(std::make_unique<GizmoSystem>()) {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
@@ -28,16 +32,34 @@ namespace SGE::EDITOR {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+        ImGuizmo::BeginFrame();
     }
 
     void EditorUI::draw(entt::registry& registry, SGE::CORE::EngineMode mode) {
         drawToolbar(mode);
 
-        ImGui::Begin("Scene");
+        gizmoSystem->draw(registry, selected, mode);
+
+        const ImVec2 display = ImGui::GetIO().DisplaySize;
+        const float panelTop = 48.0f;
+        const float sceneWidth = std::clamp(display.x * 0.23f, 180.0f, 260.0f);
+        const float inspectorWidth = std::clamp(display.x * 0.30f, 240.0f, 340.0f);
+        const float panelHeight = std::max(display.y - panelTop, 100.0f);
+
+        ImGui::SetNextWindowPos(ImVec2(0.0f, panelTop), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(sceneWidth, panelHeight), ImGuiCond_Always);
+        ImGui::Begin("Scene", nullptr,
+                     ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+                     ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
         drawEntityList(registry);
         ImGui::End();
 
-        ImGui::Begin("Inspector");
+        ImGui::SetNextWindowPos(ImVec2(std::max(display.x - inspectorWidth, sceneWidth), panelTop),
+                                ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(inspectorWidth, panelHeight), ImGuiCond_Always);
+        ImGui::Begin("Inspector", nullptr,
+                     ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+                     ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
         drawInspector(registry);
         ImGui::End();
     }
@@ -53,10 +75,40 @@ namespace SGE::EDITOR {
         return requested;
     }
 
+    bool EditorUI::wantsKeyboardCapture() const {
+        return ImGui::GetIO().WantCaptureKeyboard;
+    }
+
+    bool EditorUI::wantsMouseCapture() const {
+        return ImGui::GetIO().WantCaptureMouse;
+    }
+
+    std::uint64_t EditorUI::selectedSceneId(const entt::registry& registry) const {
+        if (selected == entt::null || !registry.valid(selected)) return 0u;
+        const auto* identity = registry.try_get<ECS::SceneIdentityComponent>(selected);
+        return identity ? identity->id : 0u;
+    }
+
+    void EditorUI::restoreSelection(entt::registry& registry, std::uint64_t sceneId) {
+        selected = entt::null;
+        if (sceneId == 0u) return;
+        for (const auto entity : registry.view<ECS::SceneIdentityComponent>()) {
+            if (registry.get<ECS::SceneIdentityComponent>(entity).id == sceneId) {
+                selected = entity;
+                return;
+            }
+        }
+    }
+
     void EditorUI::drawToolbar(SGE::CORE::EngineMode mode) {
         const bool isPlaying = (mode == SGE::CORE::EngineMode::Play);
 
-        ImGui::Begin("Toolbar", nullptr, ImGuiWindowFlags_NoCollapse);
+        ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, 48.0f), ImGuiCond_Always);
+        ImGui::Begin("Toolbar", nullptr,
+                     ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
+                     ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
+                     ImGuiWindowFlags_NoSavedSettings);
         if (isPlaying) {
             if (ImGui::Button("Stop")) {
                 playToggleRequested = true;
@@ -77,8 +129,10 @@ namespace SGE::EDITOR {
         auto view = registry.view<ECS::TagComponent>();
         for (auto entity : view) {
             const auto& tag = view.get<ECS::TagComponent>(entity);
-            const std::string label = (tag.name.empty() ? std::string("Entity") : tag.name) +
-                                       "##" + std::to_string(static_cast<uint32_t>(entity));
+            const auto* identity = registry.try_get<ECS::SceneIdentityComponent>(entity);
+            std::string label = tag.name.empty() ? std::string("Entity") : tag.name;
+            if (identity) label += " [" + std::to_string(identity->id) + "]";
+            label += "##" + std::to_string(static_cast<uint32_t>(entity));
             const bool isSelected = (entity == selected);
             if (ImGui::Selectable(label.c_str(), isSelected)) {
                 selected = entity;
@@ -132,7 +186,6 @@ namespace SGE::EDITOR {
 
         if (auto* light = registry.try_get<ECS::LightComponent>(selected)) {
             if (ImGui::CollapsingHeader("Light")) {
-                ImGui::DragFloat3("Position", &light->light.position.x, 0.1f);
                 ImGui::ColorEdit3("Color", &light->light.color.x);
                 ImGui::DragFloat("Intensity", &light->light.intensity, 0.1f, 0.0f, 100.0f);
             }

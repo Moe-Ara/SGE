@@ -70,6 +70,15 @@ This project is built using the following technologies and libraries:
 See [docs/ARCHITECTURE.md](ARCHITECTURE.md) for how these fit together, how to extend
 the engine, and a gap list of what's missing for a production-scale game.
 
+See [docs/ENGINE_AUDIT.md](ENGINE_AUDIT.md) for the current correctness audit,
+prioritized defects, and staged roadmap toward AA-scale production readiness.
+
+See [docs/PERFORMANCE.md](PERFORMANCE.md) for allocation-reuse contracts and the
+lightweight system/BVH pooling architecture.
+
+See [docs/SCENE_FORMAT.md](SCENE_FORMAT.md) for stable entity identity, component
+serialization, asset resolution, and scene-version rules.
+
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- GETTING STARTED -->
@@ -85,4 +94,33 @@ shown; use vcpkg or your OS's package manager equivalents elsewhere):
 * GLM (`libglm-dev`)
 * Dear ImGui (`libimgui-dev`)
 * A C++20 compiler + CMake 3.16+
+
+### Build and Run
+
+```bash
+cmake -S . -B build -DBUILD_TESTING=ON
+cmake --build build --parallel 2
+ctest --test-dir build --output-on-failure
+./build/SGE
+```
+
+The executable discovers `resources` beside itself and searches parent directories
+for IDE build layouts. For a custom output layout, set the root explicitly:
+
+```bash
+SGE_RESOURCE_ROOT=/absolute/path/to/SGE/resources /path/to/SGE
+```
+
+Startup diagnostics are written to standard error and identify resource discovery,
+window/context creation, shader loading, environment baking, and main-loop entry.
+
+Interactive launches require a working graphical session. The engine no longer
+silently falls back to no-window execution when display variables are missing. Use
+`SGE_HEADLESS=1` only for an intentional headless run. On GLFW 3.4+, X11 or Wayland
+can be selected explicitly with `SGE_GLFW_PLATFORM=x11` or
+`SGE_GLFW_PLATFORM=wayland`.
+
+Under WSLg, SGE prefers X11/XWayland because GLFW Wayland can create a valid EGL
+context without mapping a visible window in some remote IDE sessions. Set
+`SGE_GLFW_PLATFORM=wayland` to override that default.
 

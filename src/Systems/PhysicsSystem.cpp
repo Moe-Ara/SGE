@@ -1,5 +1,7 @@
 #include "PhysicsSystem.h"
 #include "../ECS/Components.h"
+#include <cmath>
+#include <stdexcept>
 
 namespace SGE::SYSTEMS {
 
@@ -11,6 +13,10 @@ namespace SGE::SYSTEMS {
 
             if (body.isStatic || !body.enabled) {
                 continue;
+            }
+
+            if (!std::isfinite(body.mass) || body.mass <= 0.0f) {
+                throw std::logic_error("Dynamic rigid body mass must be finite and positive");
             }
 
             body.addForce(gravity * body.mass);

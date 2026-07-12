@@ -9,9 +9,10 @@ namespace SGE::EVENTS {
                                   entt::entity a,
                                   entt::entity b,
                                   const glm::vec3& point,
-                                  const glm::vec3& normal)
+                                  const glm::vec3& normal,
+                                  CollisionPhase phase)
         : eventType("collision"), eventName(name), entityA(a), entityB(b),
-          collisionPoint(point), collisionNormal(normal) {}
+          collisionPoint(point), collisionNormal(normal), phase(phase) {}
 
     std::string CollisionEvent::getType() const {
         return eventType;
@@ -35,5 +36,9 @@ namespace SGE::EVENTS {
 
     glm::vec3 CollisionEvent::getCollisionNormal() const {
         return collisionNormal;
+    }
+
+    CollisionPhase CollisionEvent::getPhase() const {
+        return phase;
     }
 }

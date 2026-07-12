@@ -46,7 +46,25 @@ namespace SGE::SYSTEMS {
             const auto& targetTransform =
                 registry.get<ECS::TransformComponent>(follow.target);
 
-            const bool rotating = inputHandler->isMouseButtonPressed(GLFW_MOUSE_BUTTON_RIGHT);
+            if (!follow.orbitInitialized) {
+                const float radius = glm::length(follow.offset);
+                if (radius > 0.0001f) {
+                    follow.yaw = glm::degrees(glm::atan(follow.offset.x, follow.offset.z));
+                    follow.pitch = glm::degrees(glm::asin(
+                        glm::clamp(follow.offset.y / radius, -1.0f, 1.0f)
+                    ));
+                }
+                follow.orbitInitialized = true;
+            }
+
+            const bool rightMouseDown =
+                inputHandler->isMouseButtonPressedRaw(GLFW_MOUSE_BUTTON_RIGHT);
+            if (!rightMouseDown) {
+                follow.mouseLookActive = false;
+            } else if (!follow.mouseLookActive && !inputHandler->isMouseCaptured()) {
+                follow.mouseLookActive = true;
+            }
+            const bool rotating = follow.mouseLookActive;
 
             glfwSetInputMode(
                 window.getMWindow(),
@@ -67,10 +85,10 @@ namespace SGE::SYSTEMS {
                 const double deltaX = mouseX - follow.lastMouseX;
                 const double deltaY = follow.lastMouseY - mouseY;
 
-                const float sensitivity = 0.05f;
-                follow.yaw -= static_cast<float>(deltaX) * sensitivity;
-                follow.pitch += static_cast<float>(deltaY) * sensitivity;
-                follow.pitch = glm::clamp(follow.pitch, -89.0f, 89.0f);
+                follow.yaw -= static_cast<float>(deltaX) * follow.mouseSensitivity;
+                follow.pitch = UTILS::clampPitch(
+                    follow.pitch + static_cast<float>(deltaY) * follow.mouseSensitivity
+                );
 
                 follow.lastMouseX = window.getWidth() / 2.0;
                 follow.lastMouseY = window.getHeight() / 2.0;

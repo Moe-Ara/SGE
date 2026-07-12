@@ -1,5 +1,10 @@
 # SGE Architecture
 
+> This document describes the intended architecture. The newer
+> [engine audit](ENGINE_AUDIT.md) is authoritative for current defects and the
+> production-readiness roadmap. In particular, the audit includes a reproduced
+> cross-partition BVH failure that supersedes older claims in this document.
+
 This document explains how the engine is put together, how to extend it, and what is
 still missing before it could support a real (AA-scale) game. It reflects the
 2026-07 rewrite: the engine moved from a hand-rolled `GameObject`/`Actor` inheritance
@@ -160,7 +165,8 @@ render-prep systems consume the finished data for the frame.
    positionally separates the two entities along the contact normal proportional to
    penetration depth, applies a restitution-scaled velocity response to whichever side(s)
    have a non-static `RigidBodyComponent`, then publishes a `"collision"` `CollisionEvent`
-   (carrying the two `entt::entity` values, contact point, and normal) through the
+   (carrying the two `entt::entity` values, contact point, normal, and an
+   Enter/Stay/Exit phase) through the
    injected `EventSystem`. This is a basic response (no rotation/torque, no
    constraint solver) — see gap list for what a real physics story still needs.
    Rebuilding the BVH from scratch each frame is deliberate: the old BVH had incremental
@@ -249,9 +255,9 @@ The Blinn-Phong shader does not sample textures.
   inspector but never consulted by anything). There's still no rotation/torque, no
   constraint/joint solver, and no static-geometry (ground/level mesh) collision — see
   gap list.
-- `CollisionSystem` also publishes a `"collision"` `CollisionEvent` per overlap through
-  the injected `EventSystem`; nothing subscribes by default except a demo log line in
-  `Application::setup()`. Subscribe your own handler with
+- `CollisionSystem` tracks stable entity pairs and publishes `"collision"`
+  `CollisionEvent` values with Enter, Stay, and Exit phases through the injected
+  `EventSystem`. Subscribe your own handler with
   `eventSystem->subscribe("collision", ...)` and hold onto the returned
   `SubscriptionId` so you can `unsubscribe` it when your subscriber is destroyed —
   `EventSystem` supports removing a single subscription instead of nuking every
@@ -283,6 +289,8 @@ intentionally so, given the engine's current size.
 - **EnTT**: single header vendored at `external/entt/entt/entt.hpp`, pinned to v3.13.2.
   Update by re-downloading
   `https://raw.githubusercontent.com/skypjack/entt/<tag>/single_include/entt/entt.hpp`.
+- **nlohmann/json**: single header vendored under `external/nlohmann/`, pinned to
+  v3.11.3 with its MIT license. It backs the versioned SGE scene format.
 - **Dear ImGui**: core (`imgui.h`/`imgui_internal.h` + prebuilt `libimgui.a`) comes from
   the system `libimgui-dev` package, found via `pkg-config imgui`. The GLFW/OpenGL3
   backend `.cpp`/`.h` files are **not** packaged as prebuilt — Debian ships their exact
@@ -296,10 +304,10 @@ intentionally so, given the engine's current size.
   pulling in its own GL loader.
 - Everything else (GLFW, GLM, OpenGL) is still found via the original CMake
   `find_package`/pkg-config fallback chain — unchanged.
-- `resources/` is copied next to the built binary as a post-build step; all
-  asset-loading code uses paths like `resources/models/cube.obj` relative to the
-  working directory the binary is run from (this was a real, previously-broken bug —
-  see the git history / commit message for this rewrite for the audit list).
+- `resources/` is copied next to the built binary as a post-build step.
+  `CORE::AssetLocator` discovers that executable-relative root and resolves validated
+  relative asset paths from it, with a project working-directory fallback for
+  development launches.
 
 ## 9. What's missing for an AA-scale game
 
@@ -312,8 +320,9 @@ what will get built:
    uniforms), texture atlasing, and any texture loaded from an on-disk asset in the
    default scene (the demo only uses the procedural checkerboard) — `Texture::loadFromFile`
    works but nothing in `buildScene()` calls it yet.
-2. **Asset pipeline.** Models/shaders are loaded by hardcoded relative path strings at
-   scene-construction time in `Application::buildScene()`. There's no asset registry,
+2. **Asset pipeline.** Models/shaders are selected by hardcoded asset paths at
+   scene-construction time in `Application::buildScene()`. Path resolution is stable,
+   but there's no asset registry,
    no hot-reload, no reference counting beyond `shared_ptr` (so identical models
    loaded twice become two separate GPU buffers unless you manually share the
    `shared_ptr`, as `buildScene()` currently does for the player/NPC cube).
@@ -326,9 +335,10 @@ what will get built:
    `RigidBodyComponent.isStatic` beyond skipping integration for gravity). For anything
    beyond a tech demo you likely want to integrate a real physics library (Jolt, Bullet,
    PhysX) rather than continuing to hand-roll this.
-4. **Scene serialization.** There is no save/load — the "scene" is hardcoded C++ in
-   `Application::buildScene()`. No level format, no way to author content without
-   recompiling.
+4. **Scene authoring (partial).** Versioned JSON save/load, stable entity IDs,
+   reference remapping, and Play/Stop serialization are implemented. The default
+   scene is still hardcoded in `Application::buildScene()`, and the editor lacks
+   Save/Open commands, migrations, prefabs, overrides, and autosave.
 5. **Animation.** No skeletal mesh support, no animation blending/state machines — only
    static meshes.
 6. **Audio.** Nothing exists — no audio backend, no sound component, no mixer.
@@ -347,11 +357,11 @@ what will get built:
 10. **Multithreading / job system.** Systems run serially on the main thread; the
     engine has no job scheduler, so it won't scale to many entities or expensive
     systems without becoming frame-time bound.
-11. **Testing & CI.** The old `tests/` directory contained physics tests written
-    against the deleted `PhysicsEngine`/`Actor` classes and has been removed as dead
-    code along with them — there is currently **zero automated test coverage**.
-    `.github/` only has `dependabot.yml`; there's no CI workflow that actually builds
-    the project. `.devcontainer/` also still references the pre-GLAD dependency set and
+11. **Testing & CI (partial).** `SGE_tests` now provides a small CTest regression
+    suite for BVH, camera math, active-camera invariants, and registry cloning. A
+    Linux GitHub Actions workflow builds and runs it. Coverage is still far below
+    production needs and Windows/sanitizer lanes remain missing. `.devcontainer/`
+    also still references the pre-GLAD dependency set and
     needs updating (add `python3-glad`, `libimgui-dev`; drop `libglew-dev`) if you want
     a working one-click dev environment.
 12. **Windows/macOS verification.** This rewrite was built and verified on Linux/GCC

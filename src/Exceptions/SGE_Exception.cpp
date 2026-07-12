@@ -9,6 +9,9 @@ namespace SGE::EXCEPTIONS {
 SGE_Exception::SGE_Exception(const char* message)
     : std::runtime_error(message ? message : ""), m_message(message ? message : "") {}
 
+SGE_Exception::SGE_Exception(const std::string& message)
+    : std::runtime_error(message), m_message(message) {}
+
 const char* SGE_Exception::what() const noexcept {
     return m_message.c_str();
 }

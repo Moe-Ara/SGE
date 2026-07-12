@@ -1,6 +1,7 @@
 #include "PlayerControllerSystem.h"
 #include "../ECS/Components.h"
 #include "../ECS/Queries.h"
+#include "../Utils/CameraMath.h"
 
 #include <GLFW/glfw3.h>
 #include <glm/geometric.hpp>
@@ -19,13 +20,15 @@ namespace SGE::SYSTEMS {
         glm::vec3 right{1.0f, 0.0f, 0.0f};
 
         if (const entt::entity primaryCamera = ECS::findPrimaryCamera(registry); primaryCamera != entt::null) {
-            const auto& cam = registry.get<ECS::CameraComponent>(primaryCamera);
-            forward = cam.camera.getForward();
+            const auto* cameraTransform = registry.try_get<ECS::TransformComponent>(primaryCamera);
+            if (cameraTransform) {
+                forward = UTILS::cameraForward(cameraTransform->rotation);
+                right = UTILS::rightFromForward(forward);
+            }
             forward.y = 0.0f;
             if (glm::length(forward) > 0.0001f) {
                 forward = glm::normalize(forward);
             }
-            right = cam.camera.getRight();
             right.y = 0.0f;
             if (glm::length(right) > 0.0001f) {
                 right = glm::normalize(right);
@@ -46,19 +49,21 @@ namespace SGE::SYSTEMS {
                 movement = glm::normalize(movement) * controller.movementSpeed;
             }
 
-            const bool wantsUp = inputHandler->isKeyPressed(GLFW_KEY_SPACE) ||
-                                  inputHandler->isKeyPressed(GLFW_KEY_LEFT_SHIFT);
+            const bool wantsJump = inputHandler->isKeyJustPressed(GLFW_KEY_SPACE) &&
+                                   controller.grounded;
 
             if (auto* body = registry.try_get<ECS::RigidBodyComponent>(entity)) {
                 body->velocity.x = movement.x;
                 body->velocity.z = movement.z;
-                if (wantsUp) {
+                if (wantsJump) {
                     body->velocity.y = controller.jumpSpeed;
+                    controller.grounded = false;
                 }
             } else {
                 transform.translateBy(movement * deltaTime);
-                if (wantsUp) {
+                if (wantsJump) {
                     transform.translateBy(glm::vec3(0.0f, controller.jumpSpeed, 0.0f) * deltaTime);
+                    controller.grounded = false;
                 }
             }
         }

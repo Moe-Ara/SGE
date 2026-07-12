@@ -7,8 +7,10 @@
 
 #include <vector>
 #include <memory>
+#include <span>
 #include <glm/glm.hpp>
 #include <entt/entt.hpp>
+#include "../Core/ObjectPool.h"
 
 namespace SGE::PHYSICS {
     struct AABB {
@@ -42,32 +44,42 @@ namespace SGE::PHYSICS {
 
     class BVHNode {
     private:
-        std::unique_ptr<BVHNode> left;
-        std::unique_ptr<BVHNode> right;
+        BVHNode* left{nullptr};
+        BVHNode* right{nullptr};
         AABB bounds;
-        std::vector<SpatialItem> items;
+        const std::vector<SpatialItem>* items{nullptr};
+        size_t firstItem{0};
+        size_t itemCount{0};
         bool isLeaf;
 
     public:
         BVHNode();
         ~BVHNode() = default;
 
-        void build(const std::vector<SpatialItem>& itemsList);
+        void build(std::vector<SpatialItem>& itemsList,
+                   size_t first,
+                   size_t last,
+                   CORE::ObjectPool<BVHNode>& pool);
         void query(const AABB& range, std::vector<SpatialItem>& result) const;
         void getCollisions(std::vector<CollisionInfo>& collisions) const;
 
         bool isLeafNode() const { return isLeaf; }
         const AABB& getBounds() const { return bounds; }
-        const std::vector<SpatialItem>& getItems() const { return items; }
-        const BVHNode* getLeft() const { return left.get(); }
-        const BVHNode* getRight() const { return right.get(); }
+        std::span<const SpatialItem> getItems() const {
+            return std::span<const SpatialItem>{*items}.subspan(firstItem, itemCount);
+        }
+        const BVHNode* getLeft() const { return left; }
+        const BVHNode* getRight() const { return right; }
+
     };
 
     // Rebuilt from scratch every frame (call build()) from the current set of
     // collidable entities; there is no incremental insert/remove to go stale.
     class BVH {
     private:
-        std::unique_ptr<BVHNode> root;
+        CORE::ObjectPool<BVHNode> nodePool{1};
+        BVHNode* root{nullptr};
+        std::vector<SpatialItem> workingItems;
         size_t itemCount{0};
 
     public:
@@ -79,6 +91,8 @@ namespace SGE::PHYSICS {
         void getCollisions(std::vector<CollisionInfo>& collisions) const;
 
         size_t size() const { return itemCount; }
+        size_t allocatedNodeCount() const { return nodePool.capacity(); }
+        size_t activeNodeCount() const { return nodePool.active(); }
     };
 }
 

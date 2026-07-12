@@ -1,5 +1,6 @@
 #include "Environment.h"
 #include "Shader.h"
+#include "../Core/AssetLocator.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <array>
 #include <iostream>
@@ -95,7 +96,8 @@ namespace SGE::GRAPHICS {
     void Environment::captureSky(GLuint captureFBO, GLuint captureRBO) {
         environmentCubemap = std::make_unique<Cubemap>(kEnvironmentFaceSize, GL_RGB16F, GL_RGB, GL_FLOAT, true);
 
-        Shader shader("resources/shaders/cubemap_capture.vert", "resources/shaders/sky_capture.frag");
+        Shader shader(CORE::AssetLocator::resolve("shaders/cubemap_capture.vert").string(),
+                      CORE::AssetLocator::resolve("shaders/sky_capture.frag").string());
         shader.use();
         shader.setMat4("captureProjection", kCaptureProjection);
         shader.setVec3("sunDirection", glm::normalize(glm::vec3(0.35f, 0.55f, 0.4f)));
@@ -130,7 +132,8 @@ namespace SGE::GRAPHICS {
     void Environment::convolveIrradiance(GLuint captureFBO, GLuint captureRBO) {
         irradianceMap = std::make_unique<Cubemap>(kIrradianceFaceSize, GL_RGB16F, GL_RGB, GL_FLOAT, false);
 
-        Shader shader("resources/shaders/cubemap_capture.vert", "resources/shaders/irradiance_convolve.frag");
+        Shader shader(CORE::AssetLocator::resolve("shaders/cubemap_capture.vert").string(),
+                      CORE::AssetLocator::resolve("shaders/irradiance_convolve.frag").string());
         shader.use();
         shader.setMat4("captureProjection", kCaptureProjection);
         shader.setInt("environmentMap", 0);
@@ -159,7 +162,8 @@ namespace SGE::GRAPHICS {
     void Environment::prefilterSpecular(GLuint captureFBO, GLuint captureRBO) {
         prefilterMap = std::make_unique<Cubemap>(kPrefilterBaseFaceSize, GL_RGB16F, GL_RGB, GL_FLOAT, true);
 
-        Shader shader("resources/shaders/cubemap_capture.vert", "resources/shaders/prefilter_convolve.frag");
+        Shader shader(CORE::AssetLocator::resolve("shaders/cubemap_capture.vert").string(),
+                      CORE::AssetLocator::resolve("shaders/prefilter_convolve.frag").string());
         shader.use();
         shader.setMat4("captureProjection", kCaptureProjection);
         shader.setInt("environmentMap", 0);
@@ -228,7 +232,8 @@ namespace SGE::GRAPHICS {
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void*>(2 * sizeof(float)));
         glEnableVertexAttribArray(1);
 
-        Shader shader("resources/shaders/brdf_lut.vert", "resources/shaders/brdf_lut.frag");
+        Shader shader(CORE::AssetLocator::resolve("shaders/brdf_lut.vert").string(),
+                      CORE::AssetLocator::resolve("shaders/brdf_lut.frag").string());
         shader.use();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);

@@ -2,11 +2,15 @@
 #define SGE_EDITOR_EDITORUI_H
 
 #include <entt/entt.hpp>
+#include <memory>
+#include <cstdint>
 #include "../Core/EngineMode.h"
 
 struct GLFWwindow;
 
 namespace SGE::EDITOR {
+
+    class GizmoSystem;
 
     // A minimal in-process Dear ImGui debug/editor overlay: a Play/Stop toolbar,
     // an entity list, and a live component inspector for whichever entity is
@@ -26,10 +30,16 @@ namespace SGE::EDITOR {
         // True at most once per click: Application owns the mode, so the
         // toolbar just raises a request and clears it once read.
         bool consumePlayToggleRequest();
+        [[nodiscard]] bool wantsKeyboardCapture() const;
+        [[nodiscard]] bool wantsMouseCapture() const;
+        void clearSelection() { selected = entt::null; }
+        [[nodiscard]] std::uint64_t selectedSceneId(const entt::registry& registry) const;
+        void restoreSelection(entt::registry& registry, std::uint64_t sceneId);
 
     private:
         entt::entity selected{entt::null};
         bool playToggleRequested{false};
+        std::unique_ptr<GizmoSystem> gizmoSystem;
 
         void drawToolbar(SGE::CORE::EngineMode mode);
         void drawEntityList(entt::registry& registry);

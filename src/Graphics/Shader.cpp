@@ -4,13 +4,20 @@
 #include "Shader.h"
 #include "../Utils/file_reader.h"
 #include <iostream>
+#include <stdexcept>
 
 namespace SGE::GRAPHICS {
 
     // Constructor
-    Shader::Shader(const char* vertPath, const char* fragPath)
-            : vert_shader_path(vertPath), frag_shader_path(fragPath) {
+    Shader::Shader(std::string vertPath, std::string fragPath)
+            : vert_shader_path(std::move(vertPath)), frag_shader_path(std::move(fragPath)) {
         shader = load();
+        if (shader == 0) {
+            throw std::runtime_error(
+                "Failed to create shader program from '" + vert_shader_path + "' and '" +
+                frag_shader_path + "'"
+            );
+        }
     }
 
     Shader::~Shader() {
@@ -30,24 +37,27 @@ namespace SGE::GRAPHICS {
     }
 
     GLuint Shader::load() {
+        const std::string vertCodeStr = UTILS::read_file(vert_shader_path);
+        const std::string fragCodeStr = UTILS::read_file(frag_shader_path);
+
         auto program = glCreateProgram();
         auto vertex = glCreateShader(GL_VERTEX_SHADER);
         auto fragment = glCreateShader(GL_FRAGMENT_SHADER);
-
-        std::string vertCodeStr = UTILS::read_file(vert_shader_path.c_str());
-        std::string fragCodeStr = UTILS::read_file(frag_shader_path.c_str());
 
         const char* vertCode = vertCodeStr.c_str();
         const char* fragCode = fragCodeStr.c_str();
 
         if (!compileShader(vertex, vertCode)) {
             glDeleteShader(vertex);
+            glDeleteShader(fragment);
+            glDeleteProgram(program);
             return 0;
         }
 
         if (!compileShader(fragment, fragCode)) {
             glDeleteShader(vertex);
             glDeleteShader(fragment);
+            glDeleteProgram(program);
             return 0;
         }
 

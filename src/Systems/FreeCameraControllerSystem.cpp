@@ -6,6 +6,8 @@
 #include <GLFW/glfw3.h>
 #include <glm/common.hpp>
 #include <glm/geometric.hpp>
+#include <algorithm>
+#include <cmath>
 
 namespace SGE::SYSTEMS {
 
@@ -33,65 +35,94 @@ namespace SGE::SYSTEMS {
                 continue;
             }
 
-            const bool rotating = inputHandler->isMouseButtonPressed(GLFW_MOUSE_BUTTON_RIGHT);
-
-            if (!rotating) {
-                glfwSetInputMode(window.getMWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-                freeCam.initialized = false;
-                continue;
+            const bool rightMouseDown =
+                inputHandler->isMouseButtonPressedRaw(GLFW_MOUSE_BUTTON_RIGHT);
+            if (!rightMouseDown) {
+                freeCam.mouseLookActive = false;
+            } else if (!freeCam.mouseLookActive && !inputHandler->isMouseCaptured()) {
+                freeCam.mouseLookActive = true;
             }
+            const bool rotating = freeCam.mouseLookActive;
 
-            glfwSetInputMode(window.getMWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            if (rotating) {
+                glfwSetInputMode(window.getMWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-            const double mouseX = INPUT::InputHandler::getMouseX();
-            const double mouseY = INPUT::InputHandler::getMouseY();
+                const double mouseX = INPUT::InputHandler::getMouseX();
+                const double mouseY = INPUT::InputHandler::getMouseY();
 
-            if (!freeCam.initialized) {
+                if (!freeCam.initialized) {
+                    freeCam.lastMouseX = mouseX;
+                    freeCam.lastMouseY = mouseY;
+                    freeCam.initialized = true;
+                }
+
+                const double deltaX = mouseX - freeCam.lastMouseX;
+                const double deltaY = freeCam.lastMouseY - mouseY;
+
+                freeCam.yaw += static_cast<float>(deltaX) * freeCam.mouseSensitivity;
+                freeCam.pitch = UTILS::clampPitch(
+                    freeCam.pitch + static_cast<float>(deltaY) * freeCam.mouseSensitivity
+                );
+
                 freeCam.lastMouseX = mouseX;
                 freeCam.lastMouseY = mouseY;
-                freeCam.initialized = true;
+            } else {
+                glfwSetInputMode(window.getMWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+                freeCam.initialized = false;
             }
 
-            const double deltaX = mouseX - freeCam.lastMouseX;
-            const double deltaY = freeCam.lastMouseY - mouseY;
+            if (!freeCam.rotationInitialized) {
+                freeCam.smoothedYaw = freeCam.yaw;
+                freeCam.smoothedPitch = freeCam.pitch;
+                freeCam.rotationInitialized = true;
+            }
 
-            freeCam.yaw += static_cast<float>(deltaX) * freeCam.mouseSensitivity;
-            freeCam.pitch += static_cast<float>(deltaY) * freeCam.mouseSensitivity;
-            freeCam.pitch = glm::clamp(freeCam.pitch, -89.0f, 89.0f);
+            const float safeDeltaTime = std::max(deltaTime, 0.0f);
+            const float responsiveness = std::max(freeCam.rotationResponsiveness, 0.0f);
+            const float rotationBlend = 1.0f - std::exp(-responsiveness * safeDeltaTime);
+            freeCam.smoothedYaw = glm::mix(freeCam.smoothedYaw, freeCam.yaw, rotationBlend);
+            freeCam.smoothedPitch = glm::mix(freeCam.smoothedPitch, freeCam.pitch, rotationBlend);
 
-            freeCam.lastMouseX = mouseX;
-            freeCam.lastMouseY = mouseY;
-
-            const glm::vec3 forward = UTILS::forwardFromYawPitch(freeCam.yaw, freeCam.pitch);
-            const glm::vec3 right =
-                glm::normalize(glm::cross(forward, UTILS::worldUp()));
+            const glm::vec3 forward = UTILS::forwardFromYawPitch(
+                freeCam.smoothedYaw,
+                freeCam.smoothedPitch
+            );
+            const glm::vec3 right = UTILS::rightFromForward(forward);
             const glm::vec3 up = UTILS::worldUp();
+            const auto movementKeyPressed = [&](int key) {
+                return rotating
+                    ? inputHandler->isKeyPressedRaw(key)
+                    : inputHandler->isKeyPressed(key);
+            };
 
             float speed = freeCam.movementSpeed;
-            if (inputHandler->isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
+            if (movementKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
                 speed *= freeCam.sprintMultiplier;
             }
 
-            if (inputHandler->isKeyPressed(GLFW_KEY_W)) {
+            if (movementKeyPressed(GLFW_KEY_W)) {
                 transform.translation += forward * speed * deltaTime;
             }
-            if (inputHandler->isKeyPressed(GLFW_KEY_S)) {
+            if (movementKeyPressed(GLFW_KEY_S)) {
                 transform.translation -= forward * speed * deltaTime;
             }
-            if (inputHandler->isKeyPressed(GLFW_KEY_D)) {
+            if (movementKeyPressed(GLFW_KEY_D)) {
                 transform.translation += right * speed * deltaTime;
             }
-            if (inputHandler->isKeyPressed(GLFW_KEY_A)) {
+            if (movementKeyPressed(GLFW_KEY_A)) {
                 transform.translation -= right * speed * deltaTime;
             }
-            if (inputHandler->isKeyPressed(GLFW_KEY_E)) {
+            if (movementKeyPressed(GLFW_KEY_E)) {
                 transform.translation += up * speed * deltaTime;
             }
-            if (inputHandler->isKeyPressed(GLFW_KEY_Q)) {
+            if (movementKeyPressed(GLFW_KEY_Q)) {
                 transform.translation -= up * speed * deltaTime;
             }
 
-            transform.rotation = UTILS::lookRotation(forward);
+            transform.rotation = UTILS::rotationFromYawPitch(
+                freeCam.smoothedYaw,
+                freeCam.smoothedPitch
+            );
         }
     }
 

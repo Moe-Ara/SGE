@@ -19,12 +19,16 @@ namespace SGE::GRAPHICS {
 
         // Methods to interact with the window
         void update();
+        void pollEvents() const;
+        void present() const;
         void clear() const;
         bool closed() const;
         bool isHeadless() const;
         GLFWwindow* getMWindow() const;
         int getHeight() const;
         int getWidth() const;
+        int getFramebufferHeight() const;
+        int getFramebufferWidth() const;
 
     private:
         // Private constructor
@@ -36,10 +40,12 @@ namespace SGE::GRAPHICS {
 
         std::string m_title;
         int m_width, m_height;
+        int m_framebufferWidth, m_framebufferHeight;
         GLFWwindow* m_window;
         bool m_headless;
 
         static void windowResize(GLFWwindow* window, int width, int height);
+        static void framebufferResize(GLFWwindow* window, int width, int height);
     };
 }
 

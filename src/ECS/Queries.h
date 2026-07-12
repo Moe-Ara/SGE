@@ -3,6 +3,7 @@
 
 #include <entt/entt.hpp>
 #include "Components.h"
+#include <stdexcept>
 
 namespace SGE::ECS {
 
@@ -12,12 +13,26 @@ namespace SGE::ECS {
     // is marked isPrimary.
     inline entt::entity findPrimaryCamera(entt::registry& registry) {
         auto view = registry.view<CameraComponent>();
+        entt::entity primary = entt::null;
         for (auto entity : view) {
             if (view.get<CameraComponent>(entity).isPrimary) {
-                return entity;
+                if (primary != entt::null) {
+                    throw std::logic_error("Scene contains more than one primary camera");
+                }
+                primary = entity;
             }
         }
-        return entt::null;
+        return primary;
+    }
+
+    inline void setPrimaryCamera(entt::registry& registry, entt::entity selected) {
+        if (!registry.valid(selected) || !registry.all_of<CameraComponent>(selected)) {
+            throw std::invalid_argument("Primary camera must be a valid camera entity");
+        }
+        auto view = registry.view<CameraComponent>();
+        for (auto entity : view) {
+            view.get<CameraComponent>(entity).isPrimary = entity == selected;
+        }
     }
 
 } // namespace SGE::ECS

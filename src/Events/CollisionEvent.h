@@ -11,6 +11,12 @@
 #include <string>
 
 namespace SGE::EVENTS {
+    enum class CollisionPhase {
+        Enter,
+        Stay,
+        Exit
+    };
+
     class CollisionEvent : public IEvent {
     private:
         std::string eventType;
@@ -19,13 +25,15 @@ namespace SGE::EVENTS {
         entt::entity entityB;
         glm::vec3 collisionPoint;
         glm::vec3 collisionNormal;
+        CollisionPhase phase;
 
     public:
         CollisionEvent(const std::string& name,
                       entt::entity a,
                       entt::entity b,
                       const glm::vec3& point,
-                      const glm::vec3& normal);
+                      const glm::vec3& normal,
+                      CollisionPhase phase = CollisionPhase::Stay);
 
         ~CollisionEvent() override = default;
 
@@ -38,6 +46,7 @@ namespace SGE::EVENTS {
         entt::entity getEntityB() const;
         glm::vec3 getCollisionPoint() const;
         glm::vec3 getCollisionNormal() const;
+        CollisionPhase getPhase() const;
     };
 };
 

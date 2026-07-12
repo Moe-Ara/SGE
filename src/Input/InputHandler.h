@@ -15,10 +15,17 @@ namespace SGE::INPUT {
         ~InputHandler();
 
         bool isKeyPressed(unsigned int keycode) const;
+        bool isKeyPressedRaw(unsigned int keycode) const;
+        bool isKeyJustPressed(unsigned int keycode) const;
         bool isMouseButtonPressed(unsigned int button) const;
+        bool isMouseButtonPressedRaw(unsigned int button) const;
 
         bool getIsEnabled() const { return m_enabled; }
         void setIsEnabled(bool value) { m_enabled = value; }
+        void setKeyboardCaptured(bool value) { m_keyboardCaptured = value; }
+        void setMouseCaptured(bool value) { m_mouseCaptured = value; }
+        [[nodiscard]] bool isMouseCaptured() const { return m_mouseCaptured; }
+        void endFrame();
 
         static void setupKeyHandler(SGE::GRAPHICS::Window& window);
         static double getMouseX();  // Getter function for m_mouseX
@@ -30,7 +37,10 @@ namespace SGE::INPUT {
         void setIsButtonPressed(int button, bool isPressed);
 
         bool m_enabled;
+        bool m_keyboardCaptured{false};
+        bool m_mouseCaptured{false};
         std::map<int, bool> m_keys;
+        std::map<int, bool> m_keysPressedThisFrame;
         std::map<int, bool> m_buttons;
 
         static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);

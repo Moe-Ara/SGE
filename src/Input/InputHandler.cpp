@@ -11,6 +11,7 @@ namespace SGE::INPUT {
             : m_enabled(true) {
         for (int key : keysToMonitor) {
             m_keys[key] = false;
+            m_keysPressedThisFrame[key] = false;
         }
         for (int button : buttonsToMonitor) {
             m_buttons[button] = false;
@@ -23,7 +24,7 @@ namespace SGE::INPUT {
     }
 
     bool InputHandler::isKeyPressed(unsigned int keycode) const {
-        if (m_enabled) {
+        if (m_enabled && !m_keyboardCaptured) {
             auto it = m_keys.find(keycode);
             if (it != m_keys.end()) {
                 return it->second;
@@ -32,8 +33,24 @@ namespace SGE::INPUT {
         return false;
     }
 
+    bool InputHandler::isKeyPressedRaw(unsigned int keycode) const {
+        if (!m_enabled) {
+            return false;
+        }
+        const auto it = m_keys.find(keycode);
+        return it != m_keys.end() && it->second;
+    }
+
+    bool InputHandler::isKeyJustPressed(unsigned int keycode) const {
+        if (!m_enabled || m_keyboardCaptured) {
+            return false;
+        }
+        const auto it = m_keysPressedThisFrame.find(keycode);
+        return it != m_keysPressedThisFrame.end() && it->second;
+    }
+
     bool InputHandler::isMouseButtonPressed(unsigned int button) const {
-        if (m_enabled) {
+        if (m_enabled && !m_mouseCaptured) {
             auto it = m_buttons.find(button);
             if (it != m_buttons.end()) {
                 return it->second;
@@ -42,10 +59,28 @@ namespace SGE::INPUT {
         return false;
     }
 
+    bool InputHandler::isMouseButtonPressedRaw(unsigned int button) const {
+        if (!m_enabled) {
+            return false;
+        }
+        const auto it = m_buttons.find(button);
+        return it != m_buttons.end() && it->second;
+    }
+
     void InputHandler::setIsKeyPressed(int keycode, bool isPressed) {
         auto it = m_keys.find(keycode);
         if (it != m_keys.end()) {
+            if (isPressed && !it->second) {
+                m_keysPressedThisFrame[keycode] = true;
+            }
             m_keys[keycode] = isPressed;
+        }
+    }
+
+    void InputHandler::endFrame() {
+        for (auto& [key, pressed] : m_keysPressedThisFrame) {
+            (void)key;
+            pressed = false;
         }
     }
 

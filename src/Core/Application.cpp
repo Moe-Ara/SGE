@@ -1,6 +1,8 @@
 #include "Application.h"
 #include "../Graphics/Window.h"
 #include "../ECS/Components.h"
+#include "../ECS/RegistryClone.h"
+#include "../ECS/Queries.h"
 #include "../Systems/InputSystem.h"
 #include "../Systems/PlayerControllerSystem.h"
 #include "../Systems/FreeCameraControllerSystem.h"
@@ -16,10 +18,11 @@
 #include "../Utils/ModelLoader.h"
 #include "../Utils/CameraMath.h"
 #include "../Events/CollisionEvent.h"
+#include "AssetLocator.h"
 #include <GLFW/glfw3.h>
 #include <chrono>
+#include <algorithm>
 #include <iostream>
-#include <unordered_set>
 
 namespace SGE::CORE {
 
@@ -27,60 +30,6 @@ namespace SGE::CORE {
         void errorCallback(int error, const char* description) {
             (void)error;
             std::cerr << "Error: " << description << std::endl;
-        }
-
-        template<typename Component>
-        void copyComponent(entt::registry& src, entt::registry& dst) {
-            auto view = src.view<Component>();
-            for (auto entity : view) {
-                dst.emplace_or_replace<Component>(entity, view.template get<Component>(entity));
-            }
-        }
-
-        // entt::registry has no copy constructor (only move), so entering/exiting
-        // Play mode needs an explicit deep copy of every entity and known
-        // component type to snapshot/restore the pre-Play scene.
-        entt::registry cloneRegistry(entt::registry& src) {
-        entt::registry dst;
-
-            std::unordered_set<entt::entity> entities;
-            auto collect = [&entities](auto view) {
-                for (auto entity : view) {
-                    entities.insert(entity);
-                }
-            };
-            collect(src.view<ECS::TransformComponent>());
-            collect(src.view<ECS::MeshComponent>());
-            collect(src.view<ECS::MaterialComponent>());
-            collect(src.view<ECS::RigidBodyComponent>());
-            collect(src.view<ECS::SphereColliderComponent>());
-            collect(src.view<ECS::LightComponent>());
-            collect(src.view<ECS::CameraComponent>());
-            collect(src.view<ECS::FreeCameraComponent>());
-            collect(src.view<ECS::ThirdPersonFollowComponent>());
-            collect(src.view<ECS::PlayerControllerComponent>());
-            collect(src.view<ECS::TagComponent>());
-
-            // create() with a hint reuses that exact identifier on an empty
-            // registry, so entity references between components (e.g. the
-            // third-person camera's follow target) stay valid after the copy.
-            for (auto entity : entities) {
-                (void)dst.create(entity);
-            }
-
-            copyComponent<ECS::TransformComponent>(src, dst);
-            copyComponent<ECS::MeshComponent>(src, dst);
-            copyComponent<ECS::MaterialComponent>(src, dst);
-            copyComponent<ECS::RigidBodyComponent>(src, dst);
-            copyComponent<ECS::SphereColliderComponent>(src, dst);
-            copyComponent<ECS::LightComponent>(src, dst);
-            copyComponent<ECS::CameraComponent>(src, dst);
-            copyComponent<ECS::FreeCameraComponent>(src, dst);
-            copyComponent<ECS::ThirdPersonFollowComponent>(src, dst);
-            copyComponent<ECS::PlayerControllerComponent>(src, dst);
-            copyComponent<ECS::TagComponent>(src, dst);
-
-            return dst;
         }
 
         void setCameraControllerModes(entt::registry& registry, bool playMode) {
@@ -115,8 +64,13 @@ namespace SGE::CORE {
             return;
         }
 
+        std::cerr << "[SGE] Window and OpenGL context ready.\n";
+
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+        glFrontFace(GL_CCW);
         glDisable(GL_BLEND);
         glClearColor(0.05f, 0.07f, 0.09f, 1.0f);
 
@@ -130,65 +84,79 @@ namespace SGE::CORE {
 
         eventSystem = std::make_shared<SGE::EVENTS::EventSystem>();
         collisionSubscription = eventSystem->subscribe("collision", [](const SGE::EVENTS::IEvent& event) {
-            const auto& collisionEvent = static_cast<const SGE::EVENTS::CollisionEvent&>(event);
-            (void)collisionEvent;
-            std::cout << "Collision detected!" << std::endl;
+            if (const auto* collisionEvent = dynamic_cast<const SGE::EVENTS::CollisionEvent*>(&event)) {
+                (void)collisionEvent;
+            }
         });
 
-        auto shader = std::make_shared<SGE::GRAPHICS::Shader>("resources/shaders/pbr.vert", "resources/shaders/pbr.frag");
-        auto skyboxShader = std::make_shared<SGE::GRAPHICS::Shader>("resources/shaders/skybox.vert", "resources/shaders/skybox.frag");
+        std::cerr << "[SGE] Loading render shaders...\n";
+        auto shader = std::make_shared<SGE::GRAPHICS::Shader>(
+            AssetLocator::resolve("shaders/pbr.vert").string(),
+            AssetLocator::resolve("shaders/pbr.frag").string()
+        );
+        auto skyboxShader = std::make_shared<SGE::GRAPHICS::Shader>(
+            AssetLocator::resolve("shaders/skybox.vert").string(),
+            AssetLocator::resolve("shaders/skybox.frag").string()
+        );
 
         // Bakes a procedural sky into a cubemap and convolves it into IBL data
         // (diffuse irradiance + prefiltered specular + BRDF LUT) once, up front.
         // This runs several offscreen render passes at small resolutions, which
         // leaves the GL viewport pointing at the wrong size afterward.
+        std::cerr << "[SGE] Baking environment lighting...\n";
         auto environment = std::make_shared<SGE::GRAPHICS::Environment>();
-        glViewport(0, 0, window.getWidth(), window.getHeight());
+        glViewport(0, 0, window.getFramebufferWidth(), window.getFramebufferHeight());
 
         // Order matters: controller systems modify ECS data, physics/collision
         // settle simulation state, then CameraRenderSystem prepares cameras from
         // transforms before the frame is rendered.
-        simulationSystems.push_back(std::make_unique<SGE::SYSTEMS::InputSystem>(inputHandler));
-        simulationSystems.push_back(std::make_unique<SGE::SYSTEMS::PlayerControllerSystem>(inputHandler));
-        simulationSystems.push_back(std::make_unique<SGE::SYSTEMS::ThirdPersonCameraControllerSystem>(window, inputHandler));
-        simulationSystems.push_back(std::make_unique<SGE::SYSTEMS::PhysicsSystem>());
-        simulationSystems.push_back(std::make_unique<SGE::SYSTEMS::CollisionSystem>(eventSystem));
+        simulationSystems.emplace<SGE::SYSTEMS::InputSystem>(inputHandler);
+        simulationSystems.emplace<SGE::SYSTEMS::PlayerControllerSystem>(inputHandler);
+        simulationSystems.emplace<SGE::SYSTEMS::ThirdPersonCameraControllerSystem>(window, inputHandler);
+        simulationSystems.emplace<SGE::SYSTEMS::PhysicsSystem>();
+        simulationSystems.emplace<SGE::SYSTEMS::CollisionSystem>(eventSystem);
 
-        presentationSystems.push_back(std::make_unique<SGE::SYSTEMS::FreeCameraControllerSystem>(window, inputHandler));
-        presentationSystems.push_back(std::make_unique<SGE::SYSTEMS::CameraRenderSystem>(window));
-        presentationSystems.push_back(std::make_unique<SGE::SYSTEMS::RenderSystem>(shader, environment));
-        presentationSystems.push_back(std::make_unique<SGE::SYSTEMS::SkyboxSystem>(environment, skyboxShader));
+        presentationSystems.emplace<SGE::SYSTEMS::FreeCameraControllerSystem>(window, inputHandler);
+        presentationSystems.emplace<SGE::SYSTEMS::CameraRenderSystem>(window);
+        presentationSystems.emplace<SGE::SYSTEMS::RenderSystem>(shader, environment);
+        presentationSystems.emplace<SGE::SYSTEMS::SkyboxSystem>(environment, skyboxShader);
 
         editorUI = std::make_unique<SGE::EDITOR::EditorUI>(window.getMWindow());
 
         buildScene();
+        std::cerr << "[SGE] Scene and editor ready.\n";
     }
 
     void Application::buildScene() {
         std::shared_ptr<SGE::GAMEOBJECTS::Model> model =
-            SGE::UTILS::ModelLoader::loadModelFromFile("resources/models/cube.obj");
+            SGE::UTILS::ModelLoader::loadModelFromFile(
+                AssetLocator::resolve("models/cube.obj").string()
+            );
 
         // Player: user-controlled, falls under gravity, collides.
         auto player = registry.create();
+        registry.emplace<ECS::SceneIdentityComponent>(player, 1u);
         registry.emplace<ECS::TagComponent>(player, "Player");
         registry.emplace<ECS::TransformComponent>(player);
-        registry.emplace<ECS::MeshComponent>(player, model);
+        registry.emplace<ECS::MeshComponent>(player, model, "models/cube.obj");
         auto& playerMaterial = registry.emplace<ECS::MaterialComponent>(player);
         playerMaterial.albedo = glm::vec3(0.8f, 0.1f, 0.1f);
         playerMaterial.metallic = 0.1f;
         playerMaterial.roughness = 0.4f;
         playerMaterial.albedoTexture = SGE::GRAPHICS::Texture::createCheckerboard(
             256, glm::vec3(0.8f, 0.1f, 0.1f), glm::vec3(0.9f, 0.9f, 0.9f));
+        playerMaterial.albedoTextureAssetId = "generated:player-checkerboard";
         registry.emplace<ECS::RigidBodyComponent>(player);
         registry.emplace<ECS::SphereColliderComponent>(player);
         registry.emplace<ECS::PlayerControllerComponent>(player);
 
         // NPC: static prop sharing the same mesh.
         auto npc = registry.create();
+        registry.emplace<ECS::SceneIdentityComponent>(npc, 2u);
         registry.emplace<ECS::TagComponent>(npc, "NPC");
         auto& npcTransform = registry.emplace<ECS::TransformComponent>(npc);
         npcTransform.translation = glm::vec3(10.0f, 0.0f, 2.0f);
-        registry.emplace<ECS::MeshComponent>(npc, model);
+        registry.emplace<ECS::MeshComponent>(npc, model, "models/cube.obj");
         auto& npcMaterial = registry.emplace<ECS::MaterialComponent>(npc);
         npcMaterial.albedo = glm::vec3(0.85f, 0.85f, 0.85f);
         npcMaterial.metallic = 0.0f;
@@ -197,11 +165,13 @@ namespace SGE::CORE {
 
         // Camera: third-person follow of the player.
         auto cameraEntity = registry.create();
+        registry.emplace<ECS::SceneIdentityComponent>(cameraEntity, 3u);
         registry.emplace<ECS::TagComponent>(cameraEntity, "MainCamera");
         auto& cameraTransform = registry.emplace<ECS::TransformComponent>(cameraEntity);
         cameraTransform.translation = glm::vec3(0.0f, 0.0f, 10.0f);
         cameraTransform.rotation = SGE::UTILS::lookRotation(-cameraTransform.translation);
         registry.emplace<ECS::CameraComponent>(cameraEntity);
+        ECS::setPrimaryCamera(registry, cameraEntity);
         registry.emplace<ECS::FreeCameraComponent>(cameraEntity);
         auto& follow = registry.emplace<ECS::ThirdPersonFollowComponent>(cameraEntity);
         follow.target = player;
@@ -211,9 +181,11 @@ namespace SGE::CORE {
 
         // Light
         auto lightEntity = registry.create();
+        registry.emplace<ECS::SceneIdentityComponent>(lightEntity, 4u);
         registry.emplace<ECS::TagComponent>(lightEntity, "MainLight");
+        auto& lightTransform = registry.emplace<ECS::TransformComponent>(lightEntity);
+        lightTransform.translation = glm::vec3(5.0f, 10.0f, 5.0f);
         auto& lightComp = registry.emplace<ECS::LightComponent>(lightEntity);
-        lightComp.light.position = glm::vec3(5.0f, 10.0f, 5.0f);
         lightComp.light.color = glm::vec3(1.0f, 1.0f, 0.95f);
         lightComp.light.intensity = 300.0f;
     }
@@ -231,37 +203,56 @@ namespace SGE::CORE {
     void Application::gameLoop() {
         auto& window = SGE::GRAPHICS::Window::getInstance();
         auto lastFrameTime = std::chrono::high_resolution_clock::now();
+        constexpr float fixedDeltaTime = 1.0f / 60.0f;
+        constexpr float maximumFrameTime = 0.25f;
+        constexpr int maximumCatchUpSteps = 8;
+        float simulationAccumulator = 0.0f;
 
         while (!window.closed()) {
-            if (inputHandler->isKeyPressed(GLFW_KEY_ESCAPE)) {
+            window.pollEvents();
+            if (glfwGetKey(window.getMWindow(), GLFW_KEY_ESCAPE) == GLFW_PRESS) {
                 glfwSetWindowShouldClose(window.getMWindow(), GLFW_TRUE);
                 break;
             }
 
             auto currentFrameTime = std::chrono::high_resolution_clock::now();
             std::chrono::duration<float> deltaTimeDuration = currentFrameTime - lastFrameTime;
-            float deltaTime = deltaTimeDuration.count();
+            const float deltaTime = std::clamp(deltaTimeDuration.count(), 0.0f, maximumFrameTime);
             lastFrameTime = currentFrameTime;
 
             window.clear();
+            editorUI->beginFrame();
+            inputHandler->setKeyboardCaptured(editorUI->wantsKeyboardCapture());
+            inputHandler->setMouseCaptured(editorUI->wantsMouseCapture());
+            bool inputEdgesConsumed = mode != EngineMode::Play;
 
             if (mode == EngineMode::Play) {
-                for (auto& system : simulationSystems) {
-                    system->update(registry, deltaTime);
+                simulationAccumulator += deltaTime;
+                int steps = 0;
+                while (simulationAccumulator >= fixedDeltaTime && steps < maximumCatchUpSteps) {
+                    simulationSystems.update(registry, fixedDeltaTime);
+                    simulationAccumulator -= fixedDeltaTime;
+                    ++steps;
+                    inputEdgesConsumed = true;
                 }
+                if (steps == maximumCatchUpSteps) {
+                    simulationAccumulator = 0.0f;
+                }
+            } else {
+                simulationAccumulator = 0.0f;
             }
-            for (auto& system : presentationSystems) {
-                system->update(registry, deltaTime);
-            }
+            presentationSystems.update(registry, deltaTime);
 
-            editorUI->beginFrame();
             editorUI->draw(registry, mode);
             if (editorUI->consumePlayToggleRequest()) {
                 togglePlayMode();
             }
             editorUI->endFrame();
 
-            window.update();
+            if (inputEdgesConsumed) {
+                inputHandler->endFrame();
+            }
+            window.present();
         }
     }
 
@@ -274,15 +265,21 @@ namespace SGE::CORE {
     }
 
     void Application::enterPlayMode() {
-        prePlaySnapshot = cloneRegistry(registry);
+        prePlaySnapshot = ECS::cloneRegistry(registry);
         updateCameraControllerModes(true);
         mode = EngineMode::Play;
+        std::cerr << "[SGE] Entered Play mode.\n";
     }
 
     void Application::exitPlayMode() {
+        const std::uint64_t selectedSceneId = editorUI->selectedSceneId(registry);
         registry = std::move(prePlaySnapshot);
+        simulationSystems.onWorldReset();
+        presentationSystems.onWorldReset();
+        editorUI->restoreSelection(registry, selectedSceneId);
         updateCameraControllerModes(false);
         mode = EngineMode::Inspection;
+        std::cerr << "[SGE] Returned to Inspection mode.\n";
     }
 
     void Application::updateCameraControllerModes(bool playMode) {
